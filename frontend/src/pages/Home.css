@@ -1,0 +1,52 @@
+/* Home.css - Minimal styles for the new dashboard */
+
+/* Ensure map container renders properly inside Leaflet */
+#dashboardMap {
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* Fix Leaflet controls z-index within our layout */
+.leaflet-control-zoom {
+  z-index: 10 !important;
+}
+
+.leaflet-pane {
+  z-index: 1 !important;
+}
+
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 10 !important;
+}
+
+/* Fade-in animation for results section */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Smooth scrollbar for the whole page */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f4f6ff;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #a2adc4;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6c778c;
+}

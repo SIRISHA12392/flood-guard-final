@@ -1,0 +1,447 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   FloodGuard India — Login Page Styles
+   Matches the Stitch "Access Guardian Portal" design exactly
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Design Tokens ─────────────────────────────────────────────────────── */
+:root {
+  --fg-primary:             #00666c;
+  --fg-primary-dim:         #00595f;
+  --fg-primary-container:   #76eef9;
+  --fg-on-primary:          #cefbff;
+  --fg-tertiary:            #006a2c;
+  --fg-tertiary-container:  #82ff99;
+  --fg-secondary:           #8c4a00;
+  --fg-secondary-container: #ffc69a;
+  --fg-on-secondary-container: #6f3a00;
+  --fg-on-tertiary-container:  #006127;
+  --fg-surface:             #f4f6ff;
+  --fg-surface-container-lowest: #ffffff;
+  --fg-surface-container-low:   #ecf1ff;
+  --fg-surface-variant:         #cdddfe;
+  --fg-on-surface:          #242f41;
+  --fg-on-surface-variant:  #515c70;
+  --fg-outline:             #6c778c;
+  --fg-outline-variant:     #a2adc4;
+  --fg-error:               #b31b25;
+  --fg-error-container:     #fb5151;
+
+  --fg-font-headline: 'Plus Jakarta Sans', sans-serif;
+  --fg-font-body:     'Inter', sans-serif;
+}
+
+/* ── Reset for this page ────────────────────────────────────────────────── */
+.fg-login-bg *,
+.fg-login-bg *::before,
+.fg-login-bg *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── Full-screen gradient background ───────────────────────────────────── */
+.fg-login-bg {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #00666c 0%, #76eef9 50%, #ffc69a 100%);
+  position: relative;
+  overflow: hidden;
+  font-family: var(--fg-font-body);
+}
+
+/* ── Ambient blobs (decorative blurs) ─────────────────────────────────── */
+.fg-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  pointer-events: none;
+  z-index: 0;
+}
+.fg-blob-top {
+  top: -10%;
+  left: -10%;
+  width: 40%;
+  height: 40%;
+  background: rgba(130, 255, 153, 0.20);
+}
+.fg-blob-bottom {
+  bottom: -10%;
+  right: -10%;
+  width: 50%;
+  height: 50%;
+  background: rgba(255, 198, 154, 0.30);
+  filter: blur(150px);
+}
+
+/* ── Centered content wrapper ──────────────────────────────────────────── */
+.fg-login-wrapper {
+  width: 100%;
+  max-width: 440px;
+  position: relative;
+  z-index: 10;
+}
+
+/* ── Branding header ───────────────────────────────────────────────────── */
+.fg-brand {
+  margin-bottom: 2.5rem;
+  text-align: center;
+}
+.fg-brand-title {
+  font-family: var(--fg-font-headline);
+  font-weight: 900;
+  font-size: 2.25rem;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  line-height: 1.1;
+}
+.fg-brand-sub {
+  font-family: var(--fg-font-body);
+  color: var(--fg-on-primary);
+  margin-top: 0.5rem;
+  opacity: 0.90;
+  letter-spacing: 0.12em;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* ── Card ──────────────────────────────────────────────────────────────── */
+.fg-card {
+  background: var(--fg-surface-container-lowest);
+  border-radius: 0.5rem;
+  box-shadow: 0 24px 48px rgba(36, 47, 65, 0.12);
+  padding: 2.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.20);
+  backdrop-filter: blur(8px);
+}
+
+/* Card header */
+.fg-card-header {
+  margin-bottom: 2rem;
+}
+.fg-card-title {
+  font-family: var(--fg-font-headline);
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: var(--fg-on-surface);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.fg-card-sub {
+  font-family: var(--fg-font-body);
+  color: var(--fg-on-surface-variant);
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+/* ── Form ──────────────────────────────────────────────────────────────── */
+.fg-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Error banner */
+.fg-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #fff2f2;
+  border: 1px solid #ffb3b3;
+  border-left: 4px solid var(--fg-error);
+  border-radius: 0.25rem;
+  padding: 0.75rem 1rem;
+  color: var(--fg-error);
+  font-size: 0.875rem;
+  font-weight: 500;
+  animation: fg-shake 0.3s ease;
+}
+.fg-error-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+@keyframes fg-shake {
+  0%, 100% { transform: translateX(0); }
+  25%       { transform: translateX(-4px); }
+  75%       { transform: translateX(4px); }
+}
+
+/* Field group */
+.fg-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.fg-field-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Label */
+.fg-label {
+  font-family: var(--fg-font-body);
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--fg-on-surface-variant);
+}
+
+/* Forgot link */
+.fg-forgot {
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--fg-primary);
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: color 0.2s;
+}
+.fg-forgot:hover { color: var(--fg-primary-dim); }
+
+/* Input wrapper (icon + input + optional eye) */
+.fg-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  border-bottom: 2px solid rgba(162, 173, 196, 0.30);
+  transition: border-color 0.2s;
+}
+.fg-input-wrap:focus-within {
+  border-bottom-color: var(--fg-primary);
+}
+
+.fg-input-icon {
+  font-family: 'Material Symbols Outlined';
+  font-size: 1.25rem;
+  color: var(--fg-outline-variant);
+  transition: color 0.2s;
+  margin-bottom: 0.5rem;
+  flex-shrink: 0;
+  user-select: none;
+}
+.fg-input-wrap:focus-within .fg-input-icon {
+  color: var(--fg-primary);
+}
+
+.fg-input {
+  flex: 1;
+  background: var(--fg-surface-container-low);
+  border: none;
+  outline: none;
+  padding: 0.5rem 0.5rem 0.5rem 0.5rem;
+  color: var(--fg-on-surface);
+  font-family: var(--fg-font-body);
+  font-size: 0.9375rem;
+  caret-color: var(--fg-primary);
+}
+.fg-input::placeholder {
+  color: rgba(108, 119, 140, 0.45);
+}
+.fg-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Eye toggle */
+.fg-eye-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  color: var(--fg-outline-variant);
+  padding: 0 0.25rem 0.4rem;
+  transition: color 0.2s;
+}
+.fg-eye-btn:hover { color: var(--fg-primary); }
+.fg-eye-btn .material-symbols-outlined { font-size: 1.1rem; }
+
+/* ── Button ────────────────────────────────────────────────────────────── */
+.fg-btn-wrap {
+  padding-top: 1rem;
+}
+.fg-btn-primary {
+  width: 100%;
+  background: linear-gradient(135deg, #00666c 0%, #00575d 100%);
+  color: #ffffff;
+  font-family: var(--fg-font-headline);
+  font-weight: 700;
+  font-size: 1rem;
+  padding: 1rem 1.5rem;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 8px 24px rgba(0, 102, 108, 0.20);
+  transition: box-shadow 0.25s, transform 0.1s;
+  letter-spacing: 0.01em;
+}
+.fg-btn-primary:hover:not(:disabled) {
+  box-shadow: 0 12px 32px rgba(0, 102, 108, 0.32);
+}
+.fg-btn-primary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.fg-btn-primary:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+.fg-btn-arrow {
+  font-size: 1.25rem;
+  transition: transform 0.2s;
+}
+.fg-btn-primary:hover .fg-btn-arrow {
+  transform: translateX(3px);
+}
+
+/* Loading spinner (inside button) */
+.fg-spinner {
+  display: inline-block;
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: fg-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes fg-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Card footer ───────────────────────────────────────────────────────── */
+.fg-card-footer {
+  margin-top: 2.5rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(162, 173, 196, 0.10);
+  text-align: center;
+}
+.fg-footer-text {
+  font-family: var(--fg-font-body);
+  color: var(--fg-on-surface-variant);
+  font-size: 0.875rem;
+}
+.fg-signup-link {
+  display: inline-block;
+  margin-top: 0.5rem;
+  font-family: var(--fg-font-headline);
+  font-weight: 800;
+  color: var(--fg-primary);
+  text-decoration: none;
+  position: relative;
+  transition: color 0.2s;
+}
+.fg-signup-link:hover { color: var(--fg-primary-dim); }
+.fg-link-underline {
+  display: block;
+  height: 2px;
+  background: var(--fg-primary-container);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.25s;
+  border-radius: 1px;
+  margin-top: 2px;
+}
+.fg-signup-link:hover .fg-link-underline {
+  transform: scaleX(1);
+}
+
+/* ── Meta / trust badges ───────────────────────────────────────────────── */
+.fg-meta {
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+@media (min-width: 640px) {
+  .fg-meta {
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 0 0.5rem;
+  }
+}
+
+.fg-badges {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.fg-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.fg-badge-green {
+  background: rgba(130, 255, 153, 0.20);
+  color: var(--fg-on-tertiary-container);
+}
+.fg-badge-orange {
+  background: rgba(255, 198, 154, 0.20);
+  color: var(--fg-on-secondary-container);
+}
+.fg-pulse-dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--fg-tertiary);
+  animation: fg-pulse 2s infinite;
+}
+@keyframes fg-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.85); }
+}
+.fg-shield-icon {
+  font-size: 0.85rem;
+}
+
+.fg-copyright {
+  font-size: 0.6rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.70);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* ── Decorative map panel (right side, large screens only) ─────────────── */
+.fg-deco-map {
+  display: none;
+  position: absolute;
+  right: -5%;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 33%;
+  height: 70%;
+  border-radius: 4rem 0 0 4rem;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.25);
+  opacity: 0.40;
+  mix-blend-mode: overlay;
+  z-index: 1;
+}
+.fg-deco-map img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+@media (min-width: 1024px) {
+  .fg-deco-map { display: block; }
+}

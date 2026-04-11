@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>FloodGuard India | Real-Time Environmental Intelligence</title>
+    <meta name="description" content="Monitor flood and landslide risks in real-time with predictions, location tracking, and personalized alerts powered by live weather data.">
+
+    <!-- PWA Meta -->
+    <meta name="theme-color" content="#00666c">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FloodGuard">
+    <link rel="apple-touch-icon" href="/pwa-192x192.svg">
+    <link rel="manifest" href="/manifest.webmanifest">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <!-- Fonts for FloodGuard UI design -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Material Symbols for icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "tertiary": "#006a2c",
+              "surface": "#f4f6ff",
+              "primary-fixed": "#76eef9",
+              "on-error": "#ffefee",
+              "primary-dim": "#00595f",
+              "surface-container-high": "#d5e3ff",
+              "error-dim": "#9f0519",
+              "surface-variant": "#cdddfe",
+              "surface-container-lowest": "#ffffff",
+              "on-secondary-fixed": "#532a00",
+              "outline": "#6c778c",
+              "on-error-container": "#570008",
+              "surface-dim": "#c3d5f8",
+              "surface-container": "#dee8ff",
+              "primary": "#00666c",
+              "on-tertiary-fixed-variant": "#006c2d",
+              "primary-fixed-dim": "#67e0ea",
+              "on-tertiary-fixed": "#004c1d",
+              "on-secondary-container": "#6f3a00",
+              "secondary-container": "#ffc69a",
+              "tertiary-fixed-dim": "#73f08c",
+              "surface-bright": "#f4f6ff",
+              "outline-variant": "#a2adc4",
+              "on-secondary-fixed-variant": "#7c4100",
+              "surface-tint": "#00666c",
+              "secondary-fixed": "#ffc69a",
+              "on-surface-variant": "#515c70",
+              "error-container": "#fb5151",
+              "error": "#b31b25",
+              "on-surface": "#242f41",
+              "surface-container-highest": "#cdddfe",
+              "inverse-primary": "#76eef9",
+              "primary-container": "#76eef9",
+              "on-primary-fixed": "#004347",
+              "on-tertiary-container": "#006127",
+              "secondary": "#8c4a00",
+              "tertiary-dim": "#005d25",
+              "secondary-dim": "#7b4000",
+              "on-primary": "#cefbff",
+              "on-primary-fixed-variant": "#006268",
+              "background": "#f4f6ff",
+              "on-secondary": "#fff0e7",
+              "tertiary-fixed": "#82ff99",
+              "on-tertiary": "#cfffcf",
+              "tertiary-container": "#82ff99",
+              "on-background": "#242f41",
+              "inverse-surface": "#040e1f",
+              "inverse-on-surface": "#929db4",
+              "on-primary-container": "#00575d",
+              "surface-container-low": "#ecf1ff",
+              "secondary-fixed-dim": "#ffb375",
+              dark: {
+                bg: '#0f131c',
+                lowest: '#0a0e17',
+                surface: '#181b25',
+                low: '#1c2029',
+                high: '#262a34',
+                highest: '#31353f',
+                primary: '#f9a825',
+                secondary: '#45d8ed',
+                textPrimary: '#dfe2ef',
+                textSecondary: '#d7c3ae',
+                textMuted: '#9f8e7a',
+                border: 'rgba(49, 53, 63, 0.2)'
+              }
+            },
+            boxShadow: {
+              'glow-cyan': '0 0 10px rgba(69,216,237,0.3)',
+              'glow-amber': '0 0 10px rgba(249,168,37,0.3)'
+            },
+            fontFamily: {
+              "headline": ["Plus Jakarta Sans"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+    <style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+    </style>
+    <style type="text/tailwindcss">
+      @layer utilities {
+        .dark-glass {
+          @apply dark:bg-[rgba(24,27,37,0.6)] dark:backdrop-blur-md;
+        }
+        
+        .dark body, .dark #root, .dark .app-container {
+          @apply bg-dark-bg text-dark-textPrimary;
+        }
+        
+        /* Elegant Dark Glassmorphism for Surface Containers */
+        .dark, .dark-mode {
+          background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%) !important;
+          color: #f1f5f9 !important;
+        }
+        
+        .dark .bg-surface-container-lowest,
+        .dark .bg-surface-container-low,
+        .dark .bg-surface-container,
+        .dark .bg-surface-container-high,
+        .dark .bg-surface-container-highest,
+        .dark .bg-surface,
+        .dark .bg-surface-bright { 
+          background-color: rgba(30, 41, 59, 0.6) !important;
+          backdrop-filter: blur(12px) !important;
+          border-color: rgba(51, 65, 85, 0.6) !important; 
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+        }
+        
+        .dark .bg-background, .dark .app-container { background: transparent !important; }
+        
+        /* Preserve card accent container colors but adapt them for dark mode */
+        .dark .bg-primary-container { background-color: rgba(0, 212, 255, 0.1) !important; border: 1px solid rgba(0, 212, 255, 0.2) !important; }
+        .dark .bg-secondary-container { background-color: rgba(251, 191, 36, 0.1) !important; border: 1px solid rgba(251, 191, 36, 0.2) !important; }
+        .dark .bg-tertiary-container { background-color: rgba(34, 197, 94, 0.1) !important; border: 1px solid rgba(34, 197, 94, 0.2) !important; }
+        
+        /* Text Colors */
+        .dark .text-on-surface, .dark .text-on-background, .dark .text-on-surface-variant { color: #f1f5f9 !important; }
+        .dark .text-primary { color: #00d4ff !important; }
+        .dark .text-secondary { color: #fbbf24 !important; }
+        
+        /* Outline */
+        .dark .border-outline-variant\/10, .dark .border-outline-variant\/20 { border-color: rgba(51, 65, 85, 0.6) !important; }
+        
+        /* NavBar Overrides */
+        .dark .navbar { background-color: rgba(15, 23, 42, 0.96) !important; border-bottom: 1px solid rgba(51, 65, 85, 0.5) !important; backdrop-filter: blur(14px) !important; }
+        .dark .navbar nav { background-color: rgba(30, 41, 59, 0.8) !important; }
+        .dark .nav-pill { color: #94a3b8 !important; }
+        .dark .nav-pill.active { background-color: #1e293b !important; color: #00d4ff !important; border-bottom-color: #00d4ff !important; }
+        .dark .nav-pill:hover:not(.active) { color: #f1f5f9 !important; background-color: rgba(255, 255, 255, 0.05) !important; }
+        
+        /* ── GLOBAL AGGRESSIVE THEME CONSISTENCY OVERRIDES ── */
+        /* Strips light backgrounds from page wrappers so gradient bleeds through */
+        .dark .bg-slate-50, 
+        .dark .bg-slate-100 { 
+          background-color: transparent !important; 
+        }
+
+        /* Converts all explicitly white cards/footers into glassmorphism dark surfaces */
+        .dark .bg-white {
+          background-color: rgba(30, 41, 59, 0.6) !important;
+          backdrop-filter: blur(12px) !important;
+          border-color: rgba(51, 65, 85, 0.5) !important;
+        }
+
+        /* Specific fix for Log row tints */
+        .dark .bg-red-50\/50, .dark .hover\:bg-red-50:hover { background-color: rgba(220, 38, 38, 0.15) !important; border-color: rgba(220, 38, 38, 0.3) !important; }
+        .dark .bg-amber-50\/50, .dark .hover\:bg-amber-50:hover { background-color: rgba(217, 119, 6, 0.15) !important; border-color: rgba(217, 119, 6, 0.3) !important; }
+        .dark .hover\:bg-slate-50:hover { background-color: rgba(51, 65, 85, 0.4) !important; }
+        .dark .bg-red-100 { background-color: rgba(220, 38, 38, 0.2) !important; color: #fca5a5 !important; }
+        .dark .bg-amber-100 { background-color: rgba(217, 119, 6, 0.2) !important; color: #fcd34d !important; }
+        .dark .bg-emerald-100 { background-color: rgba(16, 185, 129, 0.2) !important; color: #6ee7b7 !important; }
+        .dark .bg-slate-100 { background-color: rgba(100, 116, 139, 0.2) !important; color: #cbd5e1 !important; }
+        .dark .bg-blue-50 { background-color: rgba(59, 130, 246, 0.1) !important; color: #93c5fd !important; }
+
+        /* Force dark text on hardcoded classes */
+        .dark .text-slate-900, 
+        .dark .text-slate-800, 
+        .dark .text-slate-700, 
+        .dark .text-slate-600,
+        .dark .text-gray-900,
+        .dark .text-gray-800,
+        .dark .text-gray-700,
+        .dark .text-neutral-900,
+        .dark .text-neutral-800,
+        .dark .text-neutral-700 {
+            color: #f8fafc !important;
+        }
+
+        .dark .text-slate-500,
+        .dark .text-slate-400,
+        .dark .text-gray-500,
+        .dark .text-gray-400 {
+            color: #94a3b8 !important;
+        }
+      }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="module" src="/src/index.jsx"></script>
+</body>
+</html>

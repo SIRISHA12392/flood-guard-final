@@ -1,0 +1,384 @@
+.results-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f4f6ff 0%, #ecf1ff 100%);
+  padding-bottom: 2rem;
+}
+
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  background: #ffffff;
+  border-bottom: 2px solid #dee8ff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  gap: 2rem;
+}
+
+.results-header h1 {
+  margin: 0;
+  color: #00666c;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.back-button {
+  background: #76eef9;
+  color: #004347;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.back-button:hover {
+  background: #67e0ea;
+  transform: translateX(-2px);
+}
+
+.error-message {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: #f4f6ff;
+}
+
+.error-message h2 {
+  color: #00666c;
+  margin-bottom: 2rem;
+}
+
+.results-main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+}
+
+/* Risk Hero Section */
+.risk-hero {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.risk-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.risk-icon {
+  font-size: 4rem;
+  text-align: center;
+}
+
+.risk-title {
+  font-size: 2.5rem;
+  color: #242f41;
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.risk-value {
+  font-weight: 700;
+  font-size: 2rem;
+}
+
+.risk-description {
+  font-size: 1.1rem;
+  color: #515c70;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.location-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  border-left: 4px solid #00666c;
+}
+
+.location-card h3 {
+  margin: 0 0 1rem;
+  color: #00666c;
+}
+
+.location-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.location-info div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.location-info label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #515c70;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.location-info .value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #242f41;
+}
+
+.location-info .value.mono {
+  font-family: 'Courier New', monospace;
+}
+
+/* Metrics Grid */
+.metrics-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.metrics-grid h3 {
+  font-size: 1.5rem;
+  color: #00666c;
+  margin: 0;
+}
+
+.grid-4 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.metric-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  text-align: center;
+  border-top: 3px solid #76eef9;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.metric-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.metric-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.metric-card label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #515c70;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.metric-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #00666c;
+  margin: 0;
+}
+
+.metric-card small {
+  display: block;
+  color: #8a98a8;
+  margin-top: 0.5rem;
+}
+
+/* Recommendations */
+.recommendations {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.recommendations h3 {
+  font-size: 1.5rem;
+  color: #00666c;
+  margin: 0;
+}
+
+.recommendation-box {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  border-left: 4px solid #82ff99;
+  font-size: 1.05rem;
+  color: #242f41;
+  line-height: 1.8;
+}
+
+.recommendation-box p {
+  margin: 0;
+}
+
+.safety-tips {
+  background: #ffc69a20;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  border-left: 4px solid #ffc69a;
+}
+
+.safety-tips h4 {
+  margin: 0 0 1rem;
+  color: #6f3a00;
+  font-weight: 700;
+}
+
+.safety-tips ul {
+  margin: 0;
+  padding-left: 1.5rem;
+  list-style: none;
+}
+
+.safety-tips li {
+  padding: 0.5rem 0;
+  color: #242f41;
+  position: relative;
+}
+
+.safety-tips li::before {
+  content: '✓';
+  position: absolute;
+  left: -1.5rem;
+  color: #8c4a00;
+  font-weight: 700;
+}
+
+/* Action Section */
+.action-section {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding: 2rem 0;
+}
+
+.btn-download,
+.btn-primary {
+  padding: 1rem 2rem;
+  border-radius: 0.5rem;
+  border: none;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.btn-download {
+  background: #00666c;
+  color: #cefbff;
+}
+
+.btn-download:hover:not(:disabled) {
+  background: #00575d;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 102, 108, 0.2);
+}
+
+.btn-download:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: #76eef9;
+  color: #004347;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #67e0ea;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 102, 108, 0.2);
+}
+
+/* Data Info */
+.data-info {
+  text-align: center;
+  padding: 2rem;
+  background: white;
+  border-radius: 1rem;
+  border-top: 2px solid #dee8ff;
+  color: #515c70;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.data-info p {
+  margin: 0.5rem 0;
+}
+
+/* Footer */
+.results-footer {
+  text-align: center;
+  padding: 2rem;
+  color: #515c70;
+  font-size: 0.9rem;
+  border-top: 1px solid #dee8ff;
+  background: white;
+  margin-top: 3rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .results-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .results-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .risk-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .risk-title {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .risk-value {
+    font-size: 1.5rem;
+  }
+
+  .grid-4 {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+
+  .metric-icon {
+    font-size: 2.5rem;
+  }
+
+  .action-section {
+    flex-direction: column;
+  }
+
+  .btn-download,
+  .btn-primary {
+    width: 100%;
+  }
+}

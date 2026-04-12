@@ -1,8 +1,8 @@
 // chatbotAPI.js
 // Handles communication between the React frontend and the Flask backend
 
-// Change this to match your Flask backend URL if needed
-const API_URL = 'http://localhost:5000';
+// Uses VITE_API_URL env variable (set to your Render backend URL in production)
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export const sendMessage = async (text, voiceEnabled = true) => {
   try {

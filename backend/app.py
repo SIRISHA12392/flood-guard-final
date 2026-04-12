@@ -56,8 +56,9 @@ class LocationLog(db_sa.Model):
 admin = Admin(app, name='FloodGuard Admin')
 admin.add_view(ModelView(LocationLog, db_sa.session))
 
-# Enable CORS for all routes
-CORS(app)
+# Enable CORS – allow the Vercel frontend in production, everything in dev
+FRONTEND_URL = os.environ.get('FRONTEND_URL', '*')
+CORS(app, origins=[FRONTEND_URL, 'http://localhost:3000', 'http://localhost:5173'])
 
 # Register auth blueprint (provides /api/auth/login, /api/auth/register, etc.)
 app.register_blueprint(auth_bp)
@@ -124,6 +125,9 @@ def _detect_risk(latitude, longitude):
             return zone['type'], 'High'
     return 'Safe', 'Low'
 
+
+# Base directory for all DB files (resolves correctly on Render/cloud hosts)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # OpenWeatherMap API key
 API_KEY = "f6b138f613d74536572ca7800d8b31f7"
@@ -597,7 +601,7 @@ def track_location_v2():
 def sensor_status():
     """Returns live river level, rainfall and sensor count from DB."""
     try:
-        conn = sqlite3.connect('floodguard.db')
+        conn = sqlite3.connect(os.path.join(BASE_DIR, 'floodguard.db'))
         cursor = conn.cursor()
         # Fetch latest sensor reading
         cursor.execute("""
@@ -625,7 +629,7 @@ def sensor_status():
 def get_shelters():
     """Returns list of emergency shelters with occupancy."""
     try:
-        conn = sqlite3.connect('floodguard.db')
+        conn = sqlite3.connect(os.path.join(BASE_DIR, 'floodguard.db'))
         cursor = conn.cursor()
         cursor.execute("""
             SELECT id, name, area, capacity, current_occupancy, distance_km, status, lat, lng, type
@@ -649,7 +653,7 @@ def get_shelters():
 def get_flood_alerts():
     """Returns active flood/landslide alerts."""
     try:
-        conn = sqlite3.connect('floodguard.db')
+        conn = sqlite3.connect(os.path.join(BASE_DIR, 'floodguard.db'))
         cursor = conn.cursor()
         cursor.execute("""
             SELECT id, level, message, created_at
@@ -672,7 +676,7 @@ def get_flood_alerts():
 def get_evacuation_routes():
     """Returns current evacuation route statuses."""
     try:
-        conn = sqlite3.connect('floodguard.db')
+        conn = sqlite3.connect(os.path.join(BASE_DIR, 'floodguard.db'))
         cursor = conn.cursor()
         cursor.execute("""
             SELECT id, name, risk_level, est_time, distance, via_description, status
@@ -750,4 +754,5 @@ def chatbot_tts():
          return jsonify({'success': False, 'error': audio_result.get('error')}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=False, host='0.0.0.0', port=port)

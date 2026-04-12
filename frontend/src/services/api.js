@@ -75,7 +75,7 @@ export const trackLocationAPI = {
         userId = u.username || u.id || 'guest'
       } catch(e) {}
     }
-    return api.post('/track-location', { user_id: userId, latitude, longitude })
+    return api.post('/api/track-location', { user_id: userId, latitude, longitude })
   },
 }
 

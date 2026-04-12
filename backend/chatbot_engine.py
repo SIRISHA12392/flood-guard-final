@@ -25,7 +25,7 @@ except ImportError:
     pass
 
 try:
-    import google.generativeai as genai
+    from google import genai as genai_client
     HAS_GENAI = True
 except ImportError:
     HAS_GENAI = False
@@ -94,8 +94,7 @@ class FloodLandslideChatbot:
         self.api_key = raw_key
         self.use_llm = False
         if HAS_GENAI and raw_key and "your-google" not in raw_key:
-            genai.configure(api_key=raw_key)
-            self.model   = genai.GenerativeModel('gemini-1.5-flash')
+            self._genai_client = genai_client.Client(api_key=raw_key)
             self.use_llm = True
 
     # ─────────────────────────────────────────────────────────────────
@@ -1187,7 +1186,10 @@ class FloodLandslideChatbot:
         prompt += f"\nUser question: \"{text}\"\n"
 
         try:
-            resp = self.model.generate_content(prompt)
+            resp = self._genai_client.models.generate_content(
+                model='gemini-1.5-flash',
+                contents=prompt
+            )
             return resp.text.replace('*', '').replace('#', '').strip()
         except Exception as e:
             print(f"[Gemini] {e}")

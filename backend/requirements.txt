@@ -12,4 +12,4 @@ werkzeug==3.0.1
 gunicorn==21.2.0
 gTTS==2.5.1
 SpeechRecognition==3.10.4
-google-generativeai==0.8.6
+google-genai==1.10.0

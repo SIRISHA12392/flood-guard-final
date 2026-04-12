@@ -58,7 +58,7 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="bottom-nav fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-black/5 dark:border-white/5 shadow-[0_-8px_32px_rgba(0,0,0,0.1)] dark:shadow-[0_-4px_24px_rgba(0,0,0,0.4)] z-[5000] flex justify-around items-center px-2 py-3 lg:hidden transition-colors duration-300 dark:backdrop-blur-xl dark:bg-slate-900/95"
+      className="bottom-nav fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-black/5 dark:border-white/5 shadow-[0_-8px_32px_rgba(0,0,0,0.1)] dark:shadow-[0_-4px_24px_rgba(0,0,0,0.4)] z-[5000] flex justify-around items-center px-2 py-3 transition-colors duration-300 dark:backdrop-blur-xl dark:bg-slate-900/95"
       style={{
         paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))'
       }}

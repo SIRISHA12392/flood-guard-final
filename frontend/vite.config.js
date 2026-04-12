@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['pwa-192x192.svg'],
+      includeAssets: ['pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
         name: 'Flood Guard Pro',
         short_name: 'FloodGuard',
@@ -21,14 +21,14 @@ export default defineConfig({
         categories: ['weather', 'utilities'],
         icons: [
           {
-            src: 'pwa-192x192.svg',
+            src: 'pwa-192x192.png',
             sizes: '192x192',
-            type: 'image/svg+xml'
+            type: 'image/png'
           },
           {
-            src: 'pwa-192x192.svg',
+            src: 'pwa-512x512.png',
             sizes: '512x512',
-            type: 'image/svg+xml',
+            type: 'image/png',
             purpose: 'any maskable'
           }
         ],
@@ -38,7 +38,7 @@ export default defineConfig({
             short_name: 'SOS',
             description: 'Open emergency contacts',
             url: '/home?sos=1',
-            icons: [{ src: '/pwa-192x192.svg', sizes: '96x96' }]
+            icons: [{ src: '/pwa-192x192.png', sizes: '96x96' }]
           }
         ]
       },

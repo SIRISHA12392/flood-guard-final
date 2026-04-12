@@ -210,7 +210,7 @@ function App() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <img src="/pwa-192x192.svg" alt="Flood Guard" style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0 }} />
+            <img src="/pwa-192x192.png" alt="Flood Guard" style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0 }} />
             <div>
               <p style={{ margin: 0, fontWeight: 700 }}>Install Flood Guard on your device</p>
               <p style={{ margin: 0, fontSize: '0.78rem', opacity: 0.85 }}>Get instant access &amp; offline alerts</p>

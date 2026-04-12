@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import axios from 'axios'
+import { authAPI } from '../services/api'
 import './Login.css'
 
 // ─── Flood Guard Login Page ────────────────────────────────────────────
@@ -30,11 +30,8 @@ function Login({ onLogin }) {
     setLoading(true)
 
     try {
-      // POST to Flask backend auth endpoint
-      const response = await axios.post('/api/auth/login', {
-        username: username.trim(),
-        password: password,
-      })
+      // POST to Flask backend via centralized API (uses VITE_API_URL)
+      const response = await authAPI.login(username.trim(), password)
 
       if (response.data.success) {
         // Persist session — call parent handler from App.jsx

@@ -81,7 +81,8 @@ function RegisterForm({ onRegisterSuccess }) {
       if (err.response?.status === 409) {
         setError('Username already exists. Please try another one.')
       } else if (err.response?.data?.error) {
-        setError(err.response.data.error)
+        const errorData = err.response.data.error;
+        setError(typeof errorData === 'string' ? errorData : 'Registration failed.');
       } else {
         setError('Registration failed. Please try again.')
       }

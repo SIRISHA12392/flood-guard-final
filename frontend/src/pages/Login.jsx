@@ -45,7 +45,8 @@ function Login({ onLogin }) {
       if (err.response?.status === 401) {
         setError('Invalid username or password. Please try again.')
       } else if (err.response?.data?.error) {
-        setError(err.response.data.error)
+        const errorData = err.response.data.error;
+        setError(typeof errorData === 'string' ? errorData : 'Login failed.');
       } else {
         setError('Login failed. Please check your connection and try again.')
       }

@@ -1,0 +1,556 @@
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE.CSS — Mobile-only overrides for Flood Guard Pro PWA
+   ALL rules are inside max-width media queries.
+   Desktop styles are NEVER modified.
+   Breakpoints:
+     ≤767px  = phones (normal)
+     ≤479px  = small phones (SE, small Androids)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ──────────────────────────────────────────────────────────────
+   1. GLOBAL MOBILE BASE
+   ────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Prevent horizontal overflow site-wide */
+  html, body, #root {
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+
+  /* Scrollbar hidden on mobile */
+  ::-webkit-scrollbar { display: none; }
+  * { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* All touch targets minimum 44px (Apple HIG) */
+  button, a[role="button"], input[type="submit"] {
+    min-height: 44px;
+  }
+
+  /* Better tap highlight */
+  * { -webkit-tap-highlight-color: rgba(0, 102, 108, 0.1); }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   2. TOP NAVBAR — mobile compact
+   ────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Navbar container — tighter horizontal padding */
+  header > div {
+    padding: 0 16px !important;
+    height: 56px !important;
+  }
+
+  /* Hide "Emergency Call" text on mobile, keep icon */
+  #emergency-call-btn .btn-label-text {
+    display: none !important;
+  }
+
+  /* Emergency button — icon-only pill on mobile */
+  #emergency-call-btn {
+    padding: 8px 10px !important;
+    border-radius: 12px !important;
+    gap: 0 !important;
+  }
+
+  /* Notification + settings icon buttons — slightly smaller */
+  header button.p-2 {
+    padding: 6px !important;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   3. MAIN PAGE CONTAINER — tighter padding
+   ────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* The main <main> wrapper */
+  main.max-w-screen-2xl {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    padding-top: 20px !important;
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   4. HERO SECTION — typography + spacing
+   ────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Hero section wrapper */
+  section.mb-16 {
+    margin-bottom: 32px !important;
+  }
+
+  /* Hero grid — remove excessive gap */
+  section.mb-16 > div.grid {
+    gap: 24px !important;
+  }
+
+  /* Hero space-y-8 — reduce spacing between elements */
+  section.mb-16 .space-y-8 {
+    gap: 20px !important;
+  }
+
+  /* Map preview — reduce height on mobile */
+  #dashboardMap,
+  section.mb-16 div[style*="height: 480px"] {
+    height: 240px !important;
+    min-height: 240px !important;
+  }
+
+  /* Map info overlay — small adjustments */
+  section.mb-16 .absolute.bottom-6 {
+    bottom: 12px !important;
+    left: 12px !important;
+    right: 12px !important;
+    padding: 14px !important;
+  }
+
+  section.mb-16 .absolute.bottom-6 h3 {
+    font-size: 1rem !important;
+  }
+}
+
+@media (max-width: 479px) {
+  #dashboardMap,
+  section.mb-16 div[style*="height: 480px"] {
+    height: 200px !important;
+    min-height: 200px !important;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   5. SEARCH INPUT + BUTTONS — touch-friendly
+   ────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Search container */
+  .bg-surface-container-low.p-2.rounded-2xl {
+    padding: 8px !important;
+    border-radius: 16px !important;
+  }
+
+  /* Search input text */
+  .bg-surface-container-low .w-full.py-4 {
+    font-size: 1rem !important;
+    padding-top: 12px !important;
+    padding-bottom: 12px !important;
+  }
+
+  /* "Check Place" button — full width on mobile */
+  .bg-surface-container-low button[type="button"],
+  .bg-gradient-to-br.from-primary.to-primary-container {
+    width: 100% !important;
+    padding: 14px 24px !important;
+    font-size: 1rem !important;
+    border-radius: 12px !important;
+    justify-content: center !important;
+  }
+
+  /* Action button row — stack vertically */
+  .flex.flex-wrap.gap-4 {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  /* View Map button */
+  .flex.flex-wrap.gap-4 button {
+    width: 100% !important;
+    justify-content: center !important;
+    font-size: 1rem !important;
+    padding: 14px 20px !important;
+  }
+
+  /* Track My Location button */
+  button[id="track-location-btn"],
+  button.bg-gradient-to-br {
+    min-height: 52px !important;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   6. RESULT STATS CARDS (after prediction) — 2-col on mobile
+   ────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Prediction result mini cards */
+  .grid.grid-cols-2.md\\:grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .grid.grid-cols-2.md\\:grid-cols-4 > div {
+    padding: 12px !important;
+    border-radius: 14px !important;
+  }
+
+  /* Recommendation box */
+  .bg-surface-container-low.p-4.rounded-2xl {
+    padding: 12px !important;
+    font-size: 0.85rem !important;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   7. ASSESSMENT SECTION (Risk Cards) — single col + compact
+   ────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Section header */
+  section.space-y-8 > div.flex.items-end.justify-between {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+
+  section.space-y-8 h2 {
+    font-size: 1.35rem !important;
+    line-height: 1.3 !important;
+  }
+
+  /* Tab buttons row stays in row */
+  section.space-y-8 > div.flex.items-end.justify-between > div.flex.gap-2 {
+    flex-direction: row !important;
+  }
+
+  /* Assessment cards grid → single column on mobile */
+  .grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-3.gap-8 {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  /* Each assessment card — reduce padding & min-height */
+  .bg-primary-container.p-8.rounded-\\[2rem\\],
+  .bg-secondary-container.p-8.rounded-\\[2rem\\],
+  .bg-tertiary-container.p-8.rounded-\\[2rem\\] {
+    padding: 20px !important;
+    border-radius: 20px !important;
+    min-height: 200px !important;
+  }
+
+  /* Card headings */
+  .bg-primary-container h3,
+  .bg-secondary-container h3,
+  .bg-tertiary-container h3 {
+    font-size: 1.2rem !important;
+  }
+
+  /* Card icon container */
+  .bg-primary-container .w-16.h-16,
+  .bg-secondary-container .w-16.h-16,
+  .bg-tertiary-container .w-16.h-16 {
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: 14px !important;
+  }
+
+  /* Card description */
+  .bg-primary-container p.font-body,
+  .bg-secondary-container p.font-body,
+  .bg-tertiary-container p.font-body {
+    font-size: 0.85rem !important;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   8. LIVE SENSORS TAB — compact sensor grid
+   ────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Live sensors grid → 2 columns */
+  .grid.grid-cols-2.md\\:grid-cols-3.gap-4 {
+    gap: 10px !important;
+  }
+
+  /* Sensor cards */
+  .grid.grid-cols-2.md\\:grid-cols-3.gap-4 > div {
+    padding: 14px !important;
+    border-radius: 16px !important;
+  }
+
+  /* Sensor values */
+  .grid.grid-cols-2.md\\:grid-cols-3.gap-4 .text-2xl {
+    font-size: 1.3rem !important;
+  }
+
+  /* No-data placeholder */
+  .bg-surface-container-low.rounded-\\[2rem\\].p-12.text-center {
+    padding: 32px 16px !important;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   9. NATIONAL RISK OVERVIEW SECTION — compact
+   ────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Section top margin */
+  section.mt-24 {
+    margin-top: 40px !important;
+  }
+
+  /* Left stats panel */
+  section.mt-24 .lg\\:w-1\\/3 {
+    padding: 20px !important;
+    border-radius: 20px !important;
+  }
+
+  section.mt-24 h2.text-4xl {
+    font-size: 1.5rem !important;
+    margin-bottom: 16px !important;
+  }
+
+  section.mt-24 > div > div:first-child > p {
+    font-size: 0.875rem !important;
+    margin-bottom: 20px !important;
+  }
+
+  /* Feature info cards — reduce padding */
+  .lg\\:w-2\\/3 > div.grid > div {
+    padding: 20px !important;
+    border-radius: 20px !important;
+  }
+
+  .lg\\:w-2\\/3 > div.grid h4 {
+    font-size: 1rem !important;
+  }
+
+  .lg\\:w-2\\/3 > div.grid p.text-sm {
+    font-size: 0.8rem !important;
+  }
+
+  /* Feature button links */
+  .lg\\:w-2\\/3 > div.grid button {
+    min-height: 36px !important;
+    font-size: 0.8rem !important;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   10. TOAST NOTIFICATIONS — avoid nav overlap
+   ────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* GPS error banner — full width with safe margins */
+  .fixed.top-4.left-1\\/2.-translate-x-1\\/2 {
+    left: 12px !important;
+    right: 12px !important;
+    transform: none !important;
+    top: 12px !important;
+    max-width: calc(100% - 24px) !important;
+    padding: 12px 16px !important;
+    font-size: 0.85rem !important;
+  }
+
+  /* Tracking toast — reposition to top on mobile */
+  .fixed.top-20.right-6 {
+    top: 68px !important;
+    right: 12px !important;
+    left: 12px !important;
+    max-width: calc(100% - 24px) !important;
+    padding: 12px 14px !important;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   11. LOADING OVERLAY — padding on mobile
+   ────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .fixed.inset-0.bg-on-surface\\/20 > div {
+    padding: 24px !important;
+    border-radius: 20px !important;
+    margin: 16px !important;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   12. EMERGENCY MODAL — full-screen on mobile
+   ────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Modal container */
+  div[role="dialog"] {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+
+  /* Modal card — slide up from bottom, full width */
+  div[role="dialog"] > div {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 24px 24px 0 0 !important;
+    max-height: 90vh !important;
+    max-height: 90dvh !important;
+  }
+
+  /* Modal header */
+  div[role="dialog"] .rounded-t-3xl {
+    border-radius: 24px 24px 0 0 !important;
+    padding: 16px 20px !important;
+  }
+
+  /* Modal body */
+  div[role="dialog"] .px-6.py-5 {
+    padding: 16px !important;
+  }
+
+  /* Helpline grid — 2 cols on small phones */
+  div[role="dialog"] .grid.grid-cols-2.gap-3 {
+    gap: 10px !important;
+  }
+
+  div[role="dialog"] .grid.grid-cols-2.gap-3 a {
+    padding: 10px !important;
+    border-radius: 14px !important;
+    min-height: 60px !important;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   13. BOTTOM NAV — native-app quality
+   ────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .bottom-nav {
+    /* Glass morphism for premium feel */
+    background: rgba(255, 255, 255, 0.92) !important;
+    backdrop-filter: blur(20px) saturate(1.8) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(1.8) !important;
+    border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
+    /* Safe zone bottom */
+    padding-bottom: calc(12px + env(safe-area-inset-bottom)) !important;
+    padding-top: 8px !important;
+    height: auto !important;
+  }
+
+  .dark .bottom-nav,
+  .dark-mode .bottom-nav {
+    background: rgba(17, 24, 39, 0.94) !important;
+    border-top-color: rgba(255, 255, 255, 0.06) !important;
+  }
+
+  /* Each tab button */
+  .bottom-nav > a {
+    padding: 4px 8px !important;
+    min-width: 48px !important;
+    flex: 1 !important;
+  }
+
+  /* SOS floating button — slightly larger */
+  .bottom-nav .sos-trigger div.w-14.h-14 {
+    width: 56px !important;
+    height: 56px !important;
+  }
+
+  /* Active indicator bar on top */
+  .bottom-nav > a .flex.items-center.justify-center.w-11.h-8 {
+    height: 32px !important;
+    border-radius: 10px !important;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   14. CHATBOT — reposition toggle on mobile
+   ────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Move chatbot toggle button above bottom nav instead of mid-screen */
+  .chatbot-toggle-btn {
+    top: auto !important;
+    bottom: calc(88px + env(safe-area-inset-bottom)) !important;
+    right: 16px !important;
+    transform: none !important;
+    width: 52px !important;
+    height: 52px !important;
+    font-size: 1.3rem !important;
+  }
+
+  .chatbot-toggle-btn:hover {
+    transform: scale(1.08) !important;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   15. FOOTER — compact on mobile
+   ────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  footer {
+    margin-top: 32px !important;
+  }
+
+  footer > div {
+    padding: 24px 16px !important;
+    gap: 20px !important;
+    text-align: center !important;
+  }
+
+  footer div.flex.flex-wrap {
+    gap: 16px !important;
+    justify-content: center !important;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   16. TERRAIN INTEGRITY / HYDROLOGICAL pages
+       (TerrainIntegrity.jsx, Hydrologicalstability.jsx)
+       — horizontal scroll cards become vertical stacks
+   ────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Any horizontal scroll container — allow normal scroll */
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+    scroll-snap-type: x mandatory;
+  }
+
+  .overflow-x-auto > * {
+    scroll-snap-align: start;
+  }
+
+  /* Chart containers — fixed height */
+  canvas {
+    max-width: 100% !important;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   17. NICE-TO-HAVE: subtle animations for mobile page loads
+   ────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  @keyframes mobileSlideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Staggered card animations on load */
+  section.space-y-8 .grid > div:nth-child(1) { animation: mobileSlideUp 0.35s ease both 0.05s; }
+  section.space-y-8 .grid > div:nth-child(2) { animation: mobileSlideUp 0.35s ease both 0.12s; }
+  section.space-y-8 .grid > div:nth-child(3) { animation: mobileSlideUp 0.35s ease both 0.19s; }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   18. SMALL PHONES (≤479px) — extra tight adjustments
+   ────────────────────────────────────────────────────────────── */
+@media (max-width: 479px) {
+  /* Even tighter main padding */
+  main.max-w-screen-2xl {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  /* Risk Parameter label — hide on tiny screens */
+  .text-xs.font-label.font-bold.text-primary.uppercase.tracking-\\[0\\.2em\\] {
+    font-size: 0.65rem !important;
+    letter-spacing: 0.1em !important;
+  }
+
+  /* Assessment section heading */
+  section.space-y-8 h2 {
+    font-size: 1.2rem !important;
+  }
+
+  /* Result stat cards — even more compact */
+  .grid.grid-cols-2.md\\:grid-cols-4 > div {
+    padding: 10px !important;
+  }
+
+  .grid.grid-cols-2.md\\:grid-cols-4 .text-xl {
+    font-size: 1rem !important;
+  }
+
+  /* Feature data cards — single column on tiny screens */
+  .lg\\:w-2\\/3 > div.grid {
+    grid-template-columns: 1fr !important;
+  }
+}

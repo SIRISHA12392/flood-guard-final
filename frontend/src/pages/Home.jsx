@@ -33,6 +33,7 @@ function Home({ user, onLogout }) {
   const [mapReady, setMapReady] = useState(false)
   const [activeMonitoring, setActiveMonitoring] = useState({ name: 'Mumbai Metropolitan', status: 'Stable' })
   const [hasUnreadAlerts, setHasUnreadAlerts] = useState(false)
+  const [assessmentTab, setAssessmentTab] = useState('all') // 'all' | 'live'
   // ── Settings / Theme state ───────────────────────────────────────────────
   const [showSettingsMenu, setShowSettingsMenu] = useState(false)
   const [currentTheme, setCurrentTheme] = useState(localStorage.getItem('theme') || 'light')
@@ -92,8 +93,8 @@ function Home({ user, onLogout }) {
 
       mapInstanceRef.current = window.L.map('dashboardMap').setView([20, 77], 5)
 
-      window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
+      window.L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
         maxZoom: 19
       }).addTo(mapInstanceRef.current)
 
@@ -1149,11 +1150,34 @@ function Home({ user, onLogout }) {
               <h2 className="text-[1.75rem] font-headline font-bold text-on-surface">Flood &amp; Landslide Assessment</h2>
             </div>
             <div className="flex gap-2">
-              <span className="bg-surface-container-highest px-3 py-1 rounded-full text-xs font-label font-bold text-on-surface">All Regions</span>
-              <span className="bg-surface-container-low px-3 py-1 rounded-full text-xs font-label font-medium text-on-surface-variant">Live Sensors</span>
+              <button
+                onClick={() => setAssessmentTab('all')}
+                className={`px-4 py-1.5 rounded-full text-xs font-label font-bold transition-all duration-200 cursor-pointer border-none outline-none ${
+                  assessmentTab === 'all'
+                    ? 'bg-primary text-on-primary shadow-md'
+                    : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-highest'
+                }`}
+              >
+                All Regions
+              </button>
+              <button
+                onClick={() => setAssessmentTab('live')}
+                className={`px-4 py-1.5 rounded-full text-xs font-label font-bold transition-all duration-200 cursor-pointer border-none outline-none ${
+                  assessmentTab === 'live'
+                    ? 'bg-primary text-on-primary shadow-md'
+                    : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-highest'
+                }`}
+              >
+                <span className="flex items-center gap-1">
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>sensors</span>
+                  Live Sensors
+                </span>
+              </button>
             </div>
           </div>
 
+          {/* ── TAB: All Regions ─────────────────────────────────────────── */}
+          {assessmentTab === 'all' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {/* Flood Risk Card */}
             <div
@@ -1192,7 +1216,6 @@ function Home({ user, onLogout }) {
             </div>
 
             {/* Safety Zone Card */}
-            
             <div className="bg-tertiary-container p-8 rounded-[2rem] flex flex-col justify-between min-h-[320px] shadow-[0_20px_40px_rgba(0,106,44,0.08)] group hover:-translate-y-1 transition-transform cursor-pointer"
                  onClick={() => navigate('/safe-zones')} >
               <div className="space-y-4">
@@ -1208,6 +1231,109 @@ function Home({ user, onLogout }) {
               </div>
             </div>
           </div>
+          )}
+
+          {/* ── TAB: Live Sensors ────────────────────────────────────────── */}
+          {assessmentTab === 'live' && (
+          <div className="space-y-6">
+            {/* Live status indicator */}
+            <div className="flex items-center gap-3 bg-surface-container-low px-5 py-3 rounded-2xl">
+              <span className="relative flex h-3 w-3">
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isTracking ? 'bg-tertiary' : 'bg-outline'}`}></span>
+                <span className={`relative inline-flex rounded-full h-3 w-3 ${isTracking ? 'bg-tertiary' : 'bg-outline'}`}></span>
+              </span>
+              <span className="text-sm font-label font-bold text-on-surface">
+                {isTracking ? 'Sensors Active — Receiving Live Data' : 'Sensors Inactive — Start Tracking to Activate'}
+              </span>
+            </div>
+
+            {predictionData ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {/* Rainfall */}
+                <div className="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/10 hover:shadow-lg transition-shadow">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>water_drop</span>
+                    <span className="text-xs font-label font-bold text-on-surface-variant uppercase tracking-wider">Rainfall</span>
+                  </div>
+                  <p className="text-2xl font-headline font-extrabold text-on-surface">{predictionData.rainfall ?? predictionData.precipitation ?? '—'}</p>
+                  <p className="text-xs text-on-surface-variant mt-1">mm (current)</p>
+                </div>
+
+                {/* Temperature */}
+                <div className="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/10 hover:shadow-lg transition-shadow">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="material-symbols-outlined text-error" style={{ fontVariationSettings: "'FILL' 1" }}>thermostat</span>
+                    <span className="text-xs font-label font-bold text-on-surface-variant uppercase tracking-wider">Temperature</span>
+                  </div>
+                  <p className="text-2xl font-headline font-extrabold text-on-surface">{predictionData.temperature ?? '—'}</p>
+                  <p className="text-xs text-on-surface-variant mt-1">°C</p>
+                </div>
+
+                {/* Humidity */}
+                <div className="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/10 hover:shadow-lg transition-shadow">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="material-symbols-outlined text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>humidity_percentage</span>
+                    <span className="text-xs font-label font-bold text-on-surface-variant uppercase tracking-wider">Humidity</span>
+                  </div>
+                  <p className="text-2xl font-headline font-extrabold text-on-surface">{predictionData.humidity ?? '—'}</p>
+                  <p className="text-xs text-on-surface-variant mt-1">%</p>
+                </div>
+
+                {/* Wind Speed */}
+                <div className="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/10 hover:shadow-lg transition-shadow">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>air</span>
+                    <span className="text-xs font-label font-bold text-on-surface-variant uppercase tracking-wider">Wind Speed</span>
+                  </div>
+                  <p className="text-2xl font-headline font-extrabold text-on-surface">{predictionData.wind_speed ?? '—'}</p>
+                  <p className="text-xs text-on-surface-variant mt-1">km/h</p>
+                </div>
+
+                {/* Flood Risk */}
+                <div className={`p-6 rounded-2xl border border-outline-variant/10 hover:shadow-lg transition-shadow ${
+                  (predictionData.risk || '').toLowerCase().includes('high') ? 'bg-error-container' :
+                  (predictionData.risk || '').toLowerCase().includes('moderate') ? 'bg-secondary-container' : 'bg-surface-container-lowest'
+                }`}>
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="material-symbols-outlined text-error" style={{ fontVariationSettings: "'FILL' 1" }}>flood</span>
+                    <span className="text-xs font-label font-bold text-on-surface-variant uppercase tracking-wider">Flood Risk</span>
+                  </div>
+                  <p className={`text-2xl font-headline font-extrabold ${getRiskColor(predictionData.risk)}`}>{predictionData.risk || '—'}</p>
+                  <p className="text-xs text-on-surface-variant mt-1">ML Prediction</p>
+                </div>
+
+                {/* Landslide Risk */}
+                <div className={`p-6 rounded-2xl border border-outline-variant/10 hover:shadow-lg transition-shadow ${
+                  (predictionData.landslide || '').toLowerCase().includes('high') ? 'bg-error-container' :
+                  (predictionData.landslide || '').toLowerCase().includes('moderate') ? 'bg-secondary-container' : 'bg-surface-container-lowest'
+                }`}>
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="material-symbols-outlined text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>landslide</span>
+                    <span className="text-xs font-label font-bold text-on-surface-variant uppercase tracking-wider">Landslide Risk</span>
+                  </div>
+                  <p className={`text-2xl font-headline font-extrabold ${getRiskColor(predictionData.landslide)}`}>{predictionData.landslide || 'Nil'}</p>
+                  <p className="text-xs text-on-surface-variant mt-1">Terrain Analysis</p>
+                </div>
+              </div>
+            ) : (
+              /* No data yet — prompt user to search or track */
+              <div className="bg-surface-container-low rounded-[2rem] p-12 text-center">
+                <span className="material-symbols-outlined text-6xl text-outline mb-4" style={{ fontVariationSettings: "'FILL' 0" }}>sensors_off</span>
+                <h3 className="text-xl font-headline font-bold text-on-surface mb-2">No Sensor Data Yet</h3>
+                <p className="text-on-surface-variant font-body mb-6">Search for a location or start GPS tracking to activate live sensor readings.</p>
+                <button
+                  onClick={() => getUserLocation()}
+                  className="bg-primary text-on-primary px-6 py-3 rounded-full font-label font-bold text-sm border-none cursor-pointer hover:shadow-lg transition-shadow"
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>my_location</span>
+                    Start Live Tracking
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
+          )}
         </section>
 
         {/* Asymmetric Data Section */}

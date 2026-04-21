@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -56,9 +57,13 @@ function App() {
     if (stopTrackingRef.current) {
       stopTrackingRef.current()
       stopTrackingRef.current = null
-      window.__stopGlobalTrackingFn = null
-      localStorage.setItem('manual_tracking', 'false')
     }
+    window.__stopGlobalTrackingFn = null
+    window.__startGlobalTracking = null
+    window.__handleBackgroundLocation = null
+    window.__lastBackgroundCoords = null
+    window.__activeHomeMounted = false
+    localStorage.setItem('manual_tracking', 'false')
   }
 
   useEffect(() => {
@@ -110,20 +115,38 @@ function App() {
   }, [])
 
   const handleLogin = (token, userData) => {
+    // Clear any stale session data before setting new session
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    localStorage.removeItem('manual_tracking')
+    localStorage.removeItem('latest_tracking_data')
+
+    // Reset stale global state from a previous session
+    stopTracking()
+
+    // Store new session
     localStorage.setItem('token', token)
     localStorage.setItem('user', JSON.stringify(userData))
-    localStorage.setItem('manual_tracking', 'true') // start continuous tracking by default after login
+    localStorage.setItem('manual_tracking', 'true')
+
     setUser(userData)
     setIsLoggedIn(true)
-    startTracking()     // start GPS tracking after login
+    // startTracking will be called after state update via the useEffect below
   }
 
   const handleLogout = () => {
+    // Stop all tracking and clear all window globals first
+    stopTracking()
+
+    // Clear ALL session-related keys from localStorage
     localStorage.removeItem('token')
     localStorage.removeItem('user')
+    localStorage.removeItem('manual_tracking')
+    localStorage.removeItem('latest_tracking_data')
+
+    // Reset React state
     setUser(null)
     setIsLoggedIn(false)
-    stopTracking()      // stop GPS tracking after logout
   }
 
   if (loading) {

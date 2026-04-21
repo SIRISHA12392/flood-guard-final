@@ -24,9 +24,29 @@ function Map() {
   })
   
   const [locationName, setLocationName] = useState('Central India')
+  const [searchInput, setSearchInput] = useState('')
   
   const mapRef = useRef(null)
   const markerRef = useRef(null)
+
+  const searchPlace = async () => {
+    if (!searchInput.trim()) return;
+    setLoading(true);
+    try {
+      const response = await fetch(`http://localhost:5000/api/search-location?q=${encodeURIComponent(searchInput.trim())}`);
+      const data = await response.json();
+      if (!data.success) {
+        alert(data.error || 'Location not found');
+        setLoading(false);
+        return;
+      }
+      await recalculateRisk(data.lat, data.lon);
+    } catch (err) {
+      console.error('Search error:', err);
+      alert('Error searching location');
+      setLoading(false);
+    }
+  }
 
   // Recalculate Mock Risk for manual clicks
   const recalculateRisk = async (lat, lon) => {
@@ -119,8 +139,8 @@ function Map() {
         zoomControl: false 
       }).setView([coords.lat, coords.lon], 5)
 
-      window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
+      window.L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
         maxZoom: 19
       }).addTo(mapInstance)
 
@@ -204,6 +224,25 @@ function Map() {
       <main className="relative h-[calc(100vh-68px)] w-full">
         {/* Main Map Canvas */}
         <div id="full-interactive-map" className="absolute inset-0 z-0"></div>
+
+        {/* Top Search Bar Overlay */}
+        <div className="absolute top-8 left-1/2 transform -translate-x-1/2 bg-white rounded-full shadow-2xl flex items-center px-4 py-2 border border-gray-200 z-[500] w-[90%] max-w-lg">
+          <span className="material-symbols-outlined text-gray-400 mr-2">search</span>
+          <input
+            type="text"
+            className="flex-grow bg-transparent border-none outline-none focus:ring-0 text-sm py-1 font-body text-gray-800"
+            placeholder="enter the place"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') searchPlace() }}
+          />
+          <button
+            onClick={searchPlace}
+            className="bg-[#00666c] text-white px-5 py-1.5 rounded-full font-bold text-sm tracking-wide ml-2 hover:bg-[#004d52] transition-colors"
+          >
+            Analyze
+          </button>
+        </div>
 
         {/* Bottom floating pill */}
         <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-[#e8ebe6]/95 backdrop-blur-md px-6 py-3 rounded-2xl shadow-2xl flex flex-col md:flex-row items-center gap-4 md:gap-8 border border-white/40 z-[500]">

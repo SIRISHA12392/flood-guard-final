@@ -342,7 +342,7 @@ def search_location():
         
         # Try OpenWeatherMap API first (more reliable)
         try:
-            weather_url = f"http://api.openweathermap.org/geo/1.0/direct?q={place_name},IN&limit=5&appid={API_KEY}"
+            weather_url = f"http://api.openweathermap.org/geo/1.0/direct?q={place_name}&limit=5&appid={API_KEY}"
             weather_response = requests.get(weather_url, timeout=8)
             weather_response.raise_for_status()
             weather_data = weather_response.json()
@@ -353,7 +353,7 @@ def search_location():
                     "success": True,
                     "lat": float(best['lat']),
                     "lon": float(best['lon']),
-                    "display_name": f"{best['name']}, {best.get('state', 'India')}"
+                    "display_name": f"{best['name']}, {best.get('state', best.get('country', ''))}"
                 }), 200
         except requests.exceptions.RequestException as weather_error:
             print(f"OpenWeatherMap error: {weather_error}")
@@ -364,7 +364,7 @@ def search_location():
                 'User-Agent': 'FloodLandslidePredictor/1.0',
                 'Accept': 'application/json'
             }
-            nominatim_url = f"https://nominatim.openstreetmap.org/search?q={place_name},India&format=json&limit=5&addressdetails=1"
+            nominatim_url = f"https://nominatim.openstreetmap.org/search?q={place_name}&format=json&limit=5&addressdetails=1"
             nominatim_response = requests.get(nominatim_url, headers=headers, timeout=8)
             nominatim_response.raise_for_status()
             nominatim_data = nominatim_response.json()

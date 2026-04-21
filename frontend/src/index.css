@@ -745,3 +745,7 @@ body.dark-mode, body.dark,
 .animate-spin {
   animation: spin 1s linear infinite;
 }
+
+/* ── Mobile-specific responsiveness (safe — desktop unaffected) ── */
+@import './mobile.css';
+

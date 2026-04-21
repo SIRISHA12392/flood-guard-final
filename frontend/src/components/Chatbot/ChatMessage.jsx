@@ -133,8 +133,7 @@ const ChatMessage = ({ message, voiceEnabled, language }) => {
       if (/^ {2,}[-•]\s/.test(line)) {
         const content = line.replace(/^ +[-•]\s*/, '')
         elements.push(
-          <div key={key++} style={{ displ
-          ay: 'flex', gap: 6, alignItems: 'flex-start', paddingLeft: 18, marginTop: 1 }}>
+          <div key={key++} style={{ display: 'flex', gap: 6, alignItems: 'flex-start', paddingLeft: 18, marginTop: 1 }}>
             <span style={{ color: '#aaaaaa', flexShrink: 0 }}>›</span>
             <span style={{ fontSize: '0.77rem', lineHeight: 1.5 }}>{inlinePhone(content)}</span>
           </div>

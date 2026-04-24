@@ -6,8 +6,57 @@ import './Map.css'
 // Use VITE_API_URL (set on Vercel/Render), fall back to localhost in dev
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
-// ── Simple in-memory suggestion cache ────────────────────────────────────────
+// ── In-memory cache: ONLY non-empty results are stored ──────────────────────
 const suggestionCache = {}
+
+// Build Nominatim search URL with sensible defaults
+const nominatimURL = (q, extra = '') =>
+  `https://nominatim.openstreetmap.org/search` +
+  `?q=${encodeURIComponent(q)}&format=json&limit=8&addressdetails=1${extra}`
+
+// Call Nominatim and return parsed results (empty array on failure)
+async function queryNominatim(url) {
+  try {
+    const res  = await fetch(url, {
+      headers: { 'Accept-Language': 'en' }
+    })
+    if (!res.ok) return []
+    const data = await res.json()
+    return (data || []).map(item => ({
+      lat:         parseFloat(item.lat),
+      lon:         parseFloat(item.lon),
+      displayName: item.display_name || '',
+      shortName:   buildShortName(item)
+    }))
+  } catch {
+    return []
+  }
+}
+
+// Build a concise label from Nominatim address parts
+function buildShortName(item) {
+  const a = item.address || {}
+  const parts = [
+    a.amenity || a.building || a.leisure || a.tourism,   // POI name
+    a.road || a.pedestrian || a.footway || a.path,        // street
+    a.suburb || a.neighbourhood || a.quarter,             // locality
+    a.city || a.town || a.village || a.county,            // city
+    a.state,                                              // state
+    a.country
+  ].filter(Boolean)
+  return parts.length ? parts.join(', ') : item.display_name
+}
+
+// Deduplicate by rounded lat/lon (50 m grid)
+function dedupe(results) {
+  const seen = new Set()
+  return results.filter(r => {
+    const key = `${r.lat.toFixed(3)},${r.lon.toFixed(3)}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
 
 function Map() {
   const navigate = useNavigate()
@@ -42,7 +91,7 @@ function Map() {
   const debounceTimer = useRef(null)
   const searchBarRef  = useRef(null)
 
-  // ── Fetch autocomplete suggestions from Nominatim ─────────────────────────
+  // ── Fetch autocomplete suggestions – multi-strategy ─────────────────────
   const fetchSuggestions = useCallback(async (query) => {
     if (!query || query.trim().length < 2) {
       setSuggestions([])
@@ -52,11 +101,10 @@ function Map() {
     }
     const q = query.trim()
 
-    // Cache hit
+    // Cache hit (only non-empty results are ever stored)
     if (suggestionCache[q]) {
-      const cached = suggestionCache[q]
-      setSuggestions(cached)
-      setNoResults(cached.length === 0)
+      setSuggestions(suggestionCache[q])
+      setNoResults(false)
       setShowDropdown(true)
       return
     }
@@ -64,24 +112,43 @@ function Map() {
     setSugLoading(true)
     setNoResults(false)
     try {
-      const url =
-        `https://nominatim.openstreetmap.org/search` +
-        `?q=${encodeURIComponent(q)}&format=json&limit=6&addressdetails=1`
-      const res  = await fetch(url, {
-        headers: { 'Accept-Language': 'en', 'User-Agent': 'FloodGuardPro/1.0' }
-      })
-      const data = await res.json()
+      // Strategy 1: exact query, India-biased
+      let results = await queryNominatim(
+        nominatimURL(q, '&countrycodes=in')
+      )
 
-      const results = data.map((item) => ({
-        lat:         parseFloat(item.lat),
-        lon:         parseFloat(item.lon),
-        displayName: item.display_name,
-        shortName:   buildShortName(item)
-      }))
+      // Strategy 2: if sparse, also search globally (catches non-India)
+      if (results.length < 3) {
+        const global = await queryNominatim(nominatimURL(q))
+        results = dedupe([...results, ...global])
+      }
 
-      suggestionCache[q] = results
-      setSuggestions(results)
-      setNoResults(results.length === 0)
+      // Strategy 3: if still empty, try last 2–3 words as a broader query
+      if (results.length === 0) {
+        const words = q.split(' ').filter(Boolean)
+        if (words.length > 2) {
+          // drop the first word (often a POI type like "amalorpavam")
+          const broad = words.slice(1).join(' ')
+          results = await queryNominatim(
+            nominatimURL(broad, '&countrycodes=in')
+          )
+        }
+      }
+
+      // Strategy 4: keyword search for remaining empties
+      if (results.length === 0) {
+        results = await queryNominatim(
+          nominatimURL(q, '&countrycodes=in&featuretype=settlement')
+        )
+      }
+
+      const final = dedupe(results).slice(0, 8)
+
+      // Only cache non-empty so next keystroke retries
+      if (final.length > 0) suggestionCache[q] = final
+
+      setSuggestions(final)
+      setNoResults(final.length === 0)
       setShowDropdown(true)
     } catch {
       setSuggestions([])
@@ -90,19 +157,6 @@ function Map() {
       setSugLoading(false)
     }
   }, [])
-
-  // Build a concise label from Nominatim address parts
-  const buildShortName = (item) => {
-    const a = item.address || {}
-    const parts = [
-      a.road || a.pedestrian || a.footway,
-      a.suburb || a.neighbourhood || a.quarter,
-      a.city || a.town || a.village || a.county,
-      a.state,
-      a.country
-    ].filter(Boolean)
-    return parts.length ? parts.join(', ') : item.display_name
-  }
 
   // ── Debounced input handler ───────────────────────────────────────────────
   const handleSearchChange = (e) => {

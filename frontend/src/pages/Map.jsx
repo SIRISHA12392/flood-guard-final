@@ -9,45 +9,80 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 // ── In-memory cache: ONLY non-empty results are stored ──────────────────────
 const suggestionCache = {}
 
-// Build Nominatim search URL with sensible defaults
+// ── Nominatim helpers ────────────────────────────────────────────────────────
+
+// Build a concise, human-readable label from Nominatim address parts
+function buildShortName(item) {
+  const a = item.address || {}
+  const n = item.namedetails || {}
+  // name field from namedetails often contains the most accurate label
+  const poiName = n.name || n['name:en'] || null
+  const parts = [
+    // POI / amenity layer
+    a.amenity || a.office || a.building || a.leisure || a.tourism || a.shop || a.craft,
+    // Street layer – covers roads, lanes, alleys, paths
+    a.road || a.pedestrian || a.footway || a.path || a.cycleway || a.service,
+    // House number (useful for precise street search)
+    a['house_number'] ? `#${a['house_number']}` : null,
+    // Locality
+    a.suburb || a.neighbourhood || a.quarter || a.hamlet,
+    // City
+    a.city || a.town || a.village || a.municipality || a.county,
+    // State + Country
+    a.state,
+    a.country_code ? a.country_code.toUpperCase() : a.country
+  ].filter(Boolean)
+
+  // If POI name differs from first address part, prepend it
+  if (poiName && parts[0] !== poiName) parts.unshift(poiName)
+
+  return parts.length ? parts.join(', ') : item.display_name
+}
+
+// Get icon category for a result (used in dropdown)
+function getResultIcon(item) {
+  const t = item.type || ''
+  const cls = item.class || ''
+  if (cls === 'highway' || t === 'road' || t === 'residential' || t === 'primary' || t === 'secondary' || t === 'tertiary' || t === 'street' || t === 'service') return 'route'
+  if (cls === 'amenity' || t === 'school' || t === 'hospital' || t === 'university' || t === 'college') return 'school'
+  if (cls === 'place' || t === 'city' || t === 'town' || t === 'village' || t === 'suburb') return 'location_city'
+  if (cls === 'boundary') return 'map'
+  if (t === 'water' || t === 'river') return 'water'
+  return 'location_on'
+}
+
+// Build a free-text Nominatim URL
 const nominatimURL = (q, extra = '') =>
   `https://nominatim.openstreetmap.org/search` +
-  `?q=${encodeURIComponent(q)}&format=json&limit=8&addressdetails=1${extra}`
+  `?q=${encodeURIComponent(q)}&format=json&limit=8&addressdetails=1&namedetails=1${extra}`
 
-// Call Nominatim and return parsed results (empty array on failure)
+// Build a STRUCTURED Nominatim URL (street + city split)
+const nominatimStructuredURL = (street, city, extra = '') =>
+  `https://nominatim.openstreetmap.org/search` +
+  `?street=${encodeURIComponent(street)}&city=${encodeURIComponent(city)}` +
+  `&format=json&limit=8&addressdetails=1&namedetails=1${extra}`
+
+// Fetch one URL and parse results
 async function queryNominatim(url) {
   try {
-    const res  = await fetch(url, {
-      headers: { 'Accept-Language': 'en' }
-    })
+    const res = await fetch(url, { headers: { 'Accept-Language': 'en' } })
     if (!res.ok) return []
     const data = await res.json()
     return (data || []).map(item => ({
       lat:         parseFloat(item.lat),
       lon:         parseFloat(item.lon),
       displayName: item.display_name || '',
-      shortName:   buildShortName(item)
+      shortName:   buildShortName(item),
+      icon:        getResultIcon(item),
+      type:        item.type || '',
+      cls:         item.class || ''
     }))
   } catch {
     return []
   }
 }
 
-// Build a concise label from Nominatim address parts
-function buildShortName(item) {
-  const a = item.address || {}
-  const parts = [
-    a.amenity || a.building || a.leisure || a.tourism,   // POI name
-    a.road || a.pedestrian || a.footway || a.path,        // street
-    a.suburb || a.neighbourhood || a.quarter,             // locality
-    a.city || a.town || a.village || a.county,            // city
-    a.state,                                              // state
-    a.country
-  ].filter(Boolean)
-  return parts.length ? parts.join(', ') : item.display_name
-}
-
-// Deduplicate by rounded lat/lon (50 m grid)
+// Deduplicate by rounded lat/lon (~50 m grid)
 function dedupe(results) {
   const seen = new Set()
   return results.filter(r => {
@@ -56,6 +91,18 @@ function dedupe(results) {
     seen.add(key)
     return true
   })
+}
+
+// Smart query parser: splits "street city" into { street, city } if possible
+function splitStreetCity(q) {
+  // Common Indian city/area keywords at end
+  const words = q.trim().split(/\s+/)
+  if (words.length < 2) return null
+  // Try last 1 word as city, rest as street
+  return {
+    street: words.slice(0, -1).join(' '),
+    city:   words[words.length - 1]
+  }
 }
 
 function Map() {
@@ -112,39 +159,70 @@ function Map() {
     setSugLoading(true)
     setNoResults(false)
     try {
-      // Strategy 1: exact query, India-biased
-      let results = await queryNominatim(
-        nominatimURL(q, '&countrycodes=in')
-      )
+      const words = q.trim().split(/\s+/).filter(Boolean)
+      const sc    = splitStreetCity(q)  // { street, city } split
 
-      // Strategy 2: if sparse, also search globally (catches non-India)
-      if (results.length < 3) {
-        const global = await queryNominatim(nominatimURL(q))
-        results = dedupe([...results, ...global])
+      // ── Run all strategies in PARALLEL ────────────────────────────────────
+      const promises = [
+        // S1: full free-text, India-biased, all layers
+        queryNominatim(nominatimURL(q, '&countrycodes=in')),
+
+        // S2: full free-text with explicit address layer (best for streets)
+        queryNominatim(nominatimURL(q, '&countrycodes=in&layer=address,poi,manmade')),
+
+        // S3: structured search – street + city split (great for "road name city")
+        sc ? queryNominatim(nominatimStructuredURL(sc.street, sc.city, '&countrycodes=in')) : Promise.resolve([]),
+
+        // S4: global fallback (non-India addresses)
+        queryNominatim(nominatimURL(q)),
+      ]
+
+      const allArrays = await Promise.all(promises)
+      let results = dedupe(allArrays.flat())
+
+      // ── Fallback strategies (only if still empty/sparse) ──────────────────
+      if (results.length < 2 && words.length > 2) {
+        // S5: drop first word (POI prefix) and search rest
+        const withoutFirst = words.slice(1).join(' ')
+        const s5 = await queryNominatim(
+          nominatimURL(withoutFirst, '&countrycodes=in&layer=address,poi')
+        )
+        results = dedupe([...results, ...s5])
       }
 
-      // Strategy 3: if still empty, try last 2–3 words as a broader query
-      if (results.length === 0) {
-        const words = q.split(' ').filter(Boolean)
-        if (words.length > 2) {
-          // drop the first word (often a POI type like "amalorpavam")
-          const broad = words.slice(1).join(' ')
-          results = await queryNominatim(
-            nominatimURL(broad, '&countrycodes=in')
+      if (results.length < 2 && words.length >= 2) {
+        // S6: try each pair of consecutive words as a street query
+        const pairQueries = []
+        for (let i = 0; i < words.length - 1; i++) {
+          pairQueries.push(
+            queryNominatim(nominatimURL(`${words[i]} ${words[i + 1]}`, '&countrycodes=in&layer=address'))
           )
         }
+        const pairResults = (await Promise.all(pairQueries)).flat()
+        results = dedupe([...results, ...pairResults])
       }
 
-      // Strategy 4: keyword search for remaining empties
       if (results.length === 0) {
-        results = await queryNominatim(
+        // S7: last resort – settlement/city only search
+        const s7 = await queryNominatim(
           nominatimURL(q, '&countrycodes=in&featuretype=settlement')
         )
+        results = dedupe([...results, ...s7])
       }
 
-      const final = dedupe(results).slice(0, 8)
+      // ── Rank: streets/roads first, then POI, then areas ───────────────────
+      results.sort((a, b) => {
+        const roadCls = ['highway', 'road']
+        const aIsRoad = roadCls.includes(a.cls)
+        const bIsRoad = roadCls.includes(b.cls)
+        if (aIsRoad && !bIsRoad) return -1
+        if (!aIsRoad && bIsRoad) return 1
+        return 0
+      })
 
-      // Only cache non-empty so next keystroke retries
+      const final = results.slice(0, 8)
+
+      // Cache only non-empty results
       if (final.length > 0) suggestionCache[q] = final
 
       setSuggestions(final)
@@ -424,27 +502,52 @@ function Map() {
 
           {/* ── Dropdown suggestions ── */}
           {showDropdown && (suggestions.length > 0 || noResults) && (
-            <div className="bg-white mt-1 rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+            <div className="bg-white mt-1 rounded-2xl shadow-2xl border border-gray-100 overflow-hidden animate-dropdown">
               {noResults ? (
                 <div className="flex items-center gap-2 px-4 py-3 text-sm text-gray-500">
                   <span className="material-symbols-outlined text-[18px]">location_off</span>
-                  No results found. Try a different name.
+                  No results found — try partial name, street or city.
                 </div>
               ) : (
-                suggestions.map((item, idx) => (
-                  <button
-                    key={idx}
-                    className="w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-[#f0fafa] transition-colors border-b border-gray-50 last:border-0"
-                    onClick={() => handleSelectSuggestion(item)}
-                  >
-                    <span className="material-symbols-outlined text-[#00666c] text-[18px] mt-0.5 flex-shrink-0">
-                      location_on
-                    </span>
-                    <span className="text-sm text-gray-800 leading-snug line-clamp-2">
-                      {item.shortName}
-                    </span>
-                  </button>
-                ))
+                suggestions.map((item, idx) => {
+                  // Decide badge label + color
+                  const cls = item.cls || ''
+                  const type = item.type || ''
+                  let badge = null
+                  let badgeColor = 'bg-gray-100 text-gray-500'
+                  if (cls === 'highway' || type.match(/road|residential|primary|secondary|tertiary|service|street|unclassified/)) {
+                    badge = 'Street'; badgeColor = 'bg-blue-50 text-blue-600'
+                  } else if (cls === 'amenity' || type.match(/school|hospital|university|college|church|mosque|temple|bank|restaurant/)) {
+                    badge = 'Place'; badgeColor = 'bg-purple-50 text-purple-600'
+                  } else if (cls === 'place' || type.match(/city|town|village|suburb|hamlet|locality/)) {
+                    badge = 'City'; badgeColor = 'bg-green-50 text-green-600'
+                  } else if (cls === 'boundary') {
+                    badge = 'Area'; badgeColor = 'bg-yellow-50 text-yellow-700'
+                  }
+
+                  return (
+                    <button
+                      key={idx}
+                      className="w-full text-left px-4 py-2.5 flex items-start gap-3 hover:bg-[#f0fafa] active:bg-[#e0f5f5] transition-colors border-b border-gray-50 last:border-0 group"
+                      onClick={() => handleSelectSuggestion(item)}
+                    >
+                      {/* Dynamic icon by result type */}
+                      <span className="material-symbols-outlined text-[#00666c] text-[18px] mt-0.5 flex-shrink-0 group-hover:scale-110 transition-transform">
+                        {item.icon || 'location_on'}
+                      </span>
+                      <div className="flex flex-col gap-0.5 min-w-0">
+                        <span className="text-sm text-gray-800 leading-snug line-clamp-2 font-medium">
+                          {item.shortName}
+                        </span>
+                        {badge && (
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md w-fit uppercase tracking-wide ${badgeColor}`}>
+                            {badge}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  )
+                })
               )}
             </div>
           )}

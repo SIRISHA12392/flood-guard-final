@@ -8,7 +8,24 @@
   z-index: 10;
 }
 
-/* ── Leaflet zoom controls ──────────────────────────────────────────────────── */
+/* ── Suggestion dropdown animation ─────────────────────────────────────────── */
+@keyframes dropdownFadeIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+.animate-dropdown {
+  animation: dropdownFadeIn 0.16s ease-out both;
+}
+
+/* Clamp long place names to two lines */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .leaflet-control-zoom {
   border: none !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;

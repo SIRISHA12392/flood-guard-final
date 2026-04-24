@@ -14,7 +14,7 @@ const suggestionCache = {}
 // Query Photon (komoot) — handles misspellings natively
 async function queryPhoton(q, bias = null) {
   try {
-    let url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=8&lang=en`
+    let url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=15&lang=en`
     if (bias) url += `&lat=${bias.lat}&lon=${bias.lon}`
     const res = await fetch(url)
     if (!res.ok) return []
@@ -25,8 +25,18 @@ async function queryPhoton(q, bias = null) {
       const parts = [p.name, p.street, p.district, p.city || p.county, p.state, p.country].filter(Boolean)
       const t = p.osm_value || p.type || ''
       const cls = p.osm_key || ''
-      return { lat, lon, displayName: parts.join(', '), shortName: parts.join(', '),
-        icon: getIconFor(cls, t), type: t, cls }
+      return { 
+        lat, lon, 
+        displayName: parts.join(', '), 
+        shortName: parts.join(', '),
+        icon: getIconFor(cls, t), 
+        type: t, cls,
+        // Context validation fields
+        country: p.countrycode || p.country,
+        city: p.city || p.county || p.district,
+        state: p.state,
+        rawString: JSON.stringify(p).toLowerCase()
+      }
     })
   } catch { return [] }
 }
@@ -34,7 +44,7 @@ async function queryPhoton(q, bias = null) {
 // Query Nominatim as fallback
 async function queryNominatim(q, extra = '') {
   try {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=8&addressdetails=1&namedetails=1${extra}`
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=15&addressdetails=1&namedetails=1${extra}`
     const res = await fetch(url, { headers: { 'Accept-Language': 'en' } })
     if (!res.ok) return []
     return (await res.json()).map(item => {
@@ -48,9 +58,18 @@ async function queryNominatim(q, extra = '') {
         a.country_code ? a.country_code.toUpperCase() : a.country
       ].filter(Boolean)
       if (poiName && parts[0] !== poiName) parts.unshift(poiName)
-      return { lat: +item.lat, lon: +item.lon, displayName: item.display_name || '',
+      return { 
+        lat: +item.lat, lon: +item.lon, 
+        displayName: item.display_name || '',
         shortName: parts.join(', ') || item.display_name,
-        icon: getIconFor(item.class || '', item.type || ''), type: item.type || '', cls: item.class || '' }
+        icon: getIconFor(item.class || '', item.type || ''), 
+        type: item.type || '', cls: item.class || '',
+        // Context validation fields
+        country: a.country_code || a.country,
+        city: a.city || a.town || a.county || a.state_district,
+        state: a.state,
+        rawString: JSON.stringify(a).toLowerCase() + ' ' + (item.display_name || '').toLowerCase()
+      }
     })
   } catch { return [] }
 }
@@ -72,6 +91,51 @@ function dedupe(results) {
     seen.add(key)
     return true
   })
+}
+
+// ── Relevance Ranking ─────────────────────────────────────────────────────────
+function rankResults(query, results) {
+  const qTokens = query.toLowerCase().split(/[\s,]+/).filter(t => t.length > 1)
+  
+  return results.map(res => {
+    let score = 0
+    const rawMatchTarget = (res.rawString || '').toLowerCase()
+    
+    // 1. Semantic Word Matching
+    let matchedTokens = 0
+    for (const token of qTokens) {
+      if (rawMatchTarget.includes(token)) {
+        matchedTokens++
+        score += 10
+      } else {
+        // Severe penalty if a major query word is missing from the location entirely
+        score -= 5
+      }
+    }
+    
+    // Boost if the query tokens appear close to exactly in the display name
+    if (res.displayName.toLowerCase().includes(query.toLowerCase())) {
+      score += 50
+    }
+
+    // 2. India Bias (based on user region requirement)
+    if (res.country && (res.country.toLowerCase() === 'in' || res.country.toLowerCase() === 'india')) {
+      score += 15
+    } else {
+      // Heavy penalty for wrong country if we haven't matched perfectly
+      score -= 20
+    }
+
+    // 3. Location Type Bias (prefer specific streets/places over broad regions unless broad was searched)
+    if (res.icon === 'school' || res.icon === 'route') score += 5
+
+    res._score = score
+    res._matchRatio = qTokens.length ? (matchedTokens / qTokens.length) : 0
+    return res
+  })
+  // Must match at least 50% of the query terms conceptually, or be very high score
+  .filter(res => res._matchRatio >= 0.4 || res._score > 0)
+  .sort((a, b) => b._score - a._score)
 }
 
 function Map() {
@@ -107,7 +171,7 @@ function Map() {
   const debounceTimer = useRef(null)
   const searchBarRef  = useRef(null)
 
-  // ── Fetch autocomplete suggestions – multi-strategy ─────────────────────
+  // ── Fetch autocomplete suggestions – semantic approach ────────────────────
   const fetchSuggestions = useCallback(async (query) => {
     if (!query || query.trim().length < 2) {
       setSuggestions([])
@@ -117,7 +181,6 @@ function Map() {
     }
     const q = query.trim()
 
-    // Cache hit (only non-empty results are ever stored)
     if (suggestionCache[q]) {
       setSuggestions(suggestionCache[q])
       setNoResults(false)
@@ -128,41 +191,21 @@ function Map() {
     setSugLoading(true)
     setNoResults(false)
     try {
-      const words = q.split(/\s+/).filter(Boolean)
-      // India center bias for Photon
+      // 1. Full Intent Understanding - do NOT truncate
+      // Bias results heavily toward user region (India)
       const indiaBias = { lat: 20.59, lon: 78.96 }
 
-      // ── Primary: Photon (handles typos/misspellings natively) ──────────
       const [photonRes, nominatimRes] = await Promise.all([
         queryPhoton(q, indiaBias),
         queryNominatim(q, '&countrycodes=in')
       ])
-      let results = dedupe([...photonRes, ...nominatimRes])
+      
+      let combined = dedupe([...photonRes, ...nominatimRes])
+      
+      // 2. Context-Aware Validation & Relevance Ranking
+      let ranked = rankResults(q, combined)
 
-      // ── Fallback: if sparse, try dropping first word (POI prefix) ──────
-      if (results.length < 2 && words.length > 2) {
-        const broad = words.slice(1).join(' ')
-        const [p2, n2] = await Promise.all([
-          queryPhoton(broad, indiaBias),
-          queryNominatim(broad, '&countrycodes=in')
-        ])
-        results = dedupe([...results, ...p2, ...n2])
-      }
-
-      // ── Fallback: try last word alone (city/area name) ─────────────────
-      if (results.length < 2 && words.length >= 2) {
-        const lastWord = words[words.length - 1]
-        const p3 = await queryPhoton(lastWord, indiaBias)
-        results = dedupe([...results, ...p3])
-      }
-
-      // ── Fallback: global search (non-India) ────────────────────────────
-      if (results.length < 2) {
-        const p4 = await queryPhoton(q)
-        results = dedupe([...results, ...p4])
-      }
-
-      const final = results.slice(0, 8)
+      const final = ranked.slice(0, 8)
       if (final.length > 0) suggestionCache[q] = final
 
       setSuggestions(final)

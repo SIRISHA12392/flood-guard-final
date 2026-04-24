@@ -9,80 +9,61 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 // ── In-memory cache: ONLY non-empty results are stored ──────────────────────
 const suggestionCache = {}
 
-// ── Nominatim helpers ────────────────────────────────────────────────────────
+// ── Photon API (typo-tolerant, OSM-based) ────────────────────────────────────
 
-// Build a concise, human-readable label from Nominatim address parts
-function buildShortName(item) {
-  const a = item.address || {}
-  const n = item.namedetails || {}
-  // name field from namedetails often contains the most accurate label
-  const poiName = n.name || n['name:en'] || null
-  const parts = [
-    // POI / amenity layer
-    a.amenity || a.office || a.building || a.leisure || a.tourism || a.shop || a.craft,
-    // Street layer – covers roads, lanes, alleys, paths
-    a.road || a.pedestrian || a.footway || a.path || a.cycleway || a.service,
-    // House number (useful for precise street search)
-    a['house_number'] ? `#${a['house_number']}` : null,
-    // Locality
-    a.suburb || a.neighbourhood || a.quarter || a.hamlet,
-    // City
-    a.city || a.town || a.village || a.municipality || a.county,
-    // State + Country
-    a.state,
-    a.country_code ? a.country_code.toUpperCase() : a.country
-  ].filter(Boolean)
-
-  // If POI name differs from first address part, prepend it
-  if (poiName && parts[0] !== poiName) parts.unshift(poiName)
-
-  return parts.length ? parts.join(', ') : item.display_name
+// Query Photon (komoot) — handles misspellings natively
+async function queryPhoton(q, bias = null) {
+  try {
+    let url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=8&lang=en`
+    if (bias) url += `&lat=${bias.lat}&lon=${bias.lon}`
+    const res = await fetch(url)
+    if (!res.ok) return []
+    const geo = await res.json()
+    return (geo.features || []).map(f => {
+      const p = f.properties || {}
+      const [lon, lat] = f.geometry?.coordinates || [0, 0]
+      const parts = [p.name, p.street, p.district, p.city || p.county, p.state, p.country].filter(Boolean)
+      const t = p.osm_value || p.type || ''
+      const cls = p.osm_key || ''
+      return { lat, lon, displayName: parts.join(', '), shortName: parts.join(', '),
+        icon: getIconFor(cls, t), type: t, cls }
+    })
+  } catch { return [] }
 }
 
-// Get icon category for a result (used in dropdown)
-function getResultIcon(item) {
-  const t = item.type || ''
-  const cls = item.class || ''
-  if (cls === 'highway' || t === 'road' || t === 'residential' || t === 'primary' || t === 'secondary' || t === 'tertiary' || t === 'street' || t === 'service') return 'route'
-  if (cls === 'amenity' || t === 'school' || t === 'hospital' || t === 'university' || t === 'college') return 'school'
-  if (cls === 'place' || t === 'city' || t === 'town' || t === 'village' || t === 'suburb') return 'location_city'
+// Query Nominatim as fallback
+async function queryNominatim(q, extra = '') {
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=8&addressdetails=1&namedetails=1${extra}`
+    const res = await fetch(url, { headers: { 'Accept-Language': 'en' } })
+    if (!res.ok) return []
+    return (await res.json()).map(item => {
+      const a = item.address || {}, n = item.namedetails || {}
+      const poiName = n.name || n['name:en'] || null
+      const parts = [
+        a.amenity || a.office || a.building || a.leisure || a.tourism || a.shop,
+        a.road || a.pedestrian || a.footway || a.path,
+        a.suburb || a.neighbourhood || a.quarter || a.hamlet,
+        a.city || a.town || a.village || a.county, a.state,
+        a.country_code ? a.country_code.toUpperCase() : a.country
+      ].filter(Boolean)
+      if (poiName && parts[0] !== poiName) parts.unshift(poiName)
+      return { lat: +item.lat, lon: +item.lon, displayName: item.display_name || '',
+        shortName: parts.join(', ') || item.display_name,
+        icon: getIconFor(item.class || '', item.type || ''), type: item.type || '', cls: item.class || '' }
+    })
+  } catch { return [] }
+}
+
+function getIconFor(cls, t) {
+  if (cls === 'highway' || /road|residential|primary|secondary|tertiary|street|service/.test(t)) return 'route'
+  if (cls === 'amenity' || /school|hospital|university|college/.test(t)) return 'school'
+  if (cls === 'place' || /city|town|village|suburb/.test(t)) return 'location_city'
   if (cls === 'boundary') return 'map'
-  if (t === 'water' || t === 'river') return 'water'
+  if (/water|river/.test(t)) return 'water'
   return 'location_on'
 }
 
-// Build a free-text Nominatim URL
-const nominatimURL = (q, extra = '') =>
-  `https://nominatim.openstreetmap.org/search` +
-  `?q=${encodeURIComponent(q)}&format=json&limit=8&addressdetails=1&namedetails=1${extra}`
-
-// Build a STRUCTURED Nominatim URL (street + city split)
-const nominatimStructuredURL = (street, city, extra = '') =>
-  `https://nominatim.openstreetmap.org/search` +
-  `?street=${encodeURIComponent(street)}&city=${encodeURIComponent(city)}` +
-  `&format=json&limit=8&addressdetails=1&namedetails=1${extra}`
-
-// Fetch one URL and parse results
-async function queryNominatim(url) {
-  try {
-    const res = await fetch(url, { headers: { 'Accept-Language': 'en' } })
-    if (!res.ok) return []
-    const data = await res.json()
-    return (data || []).map(item => ({
-      lat:         parseFloat(item.lat),
-      lon:         parseFloat(item.lon),
-      displayName: item.display_name || '',
-      shortName:   buildShortName(item),
-      icon:        getResultIcon(item),
-      type:        item.type || '',
-      cls:         item.class || ''
-    }))
-  } catch {
-    return []
-  }
-}
-
-// Deduplicate by rounded lat/lon (~50 m grid)
 function dedupe(results) {
   const seen = new Set()
   return results.filter(r => {
@@ -91,18 +72,6 @@ function dedupe(results) {
     seen.add(key)
     return true
   })
-}
-
-// Smart query parser: splits "street city" into { street, city } if possible
-function splitStreetCity(q) {
-  // Common Indian city/area keywords at end
-  const words = q.trim().split(/\s+/)
-  if (words.length < 2) return null
-  // Try last 1 word as city, rest as street
-  return {
-    street: words.slice(0, -1).join(' '),
-    city:   words[words.length - 1]
-  }
 }
 
 function Map() {
@@ -159,70 +128,41 @@ function Map() {
     setSugLoading(true)
     setNoResults(false)
     try {
-      const words = q.trim().split(/\s+/).filter(Boolean)
-      const sc    = splitStreetCity(q)  // { street, city } split
+      const words = q.split(/\s+/).filter(Boolean)
+      // India center bias for Photon
+      const indiaBias = { lat: 20.59, lon: 78.96 }
 
-      // ── Run all strategies in PARALLEL ────────────────────────────────────
-      const promises = [
-        // S1: full free-text, India-biased, all layers
-        queryNominatim(nominatimURL(q, '&countrycodes=in')),
+      // ── Primary: Photon (handles typos/misspellings natively) ──────────
+      const [photonRes, nominatimRes] = await Promise.all([
+        queryPhoton(q, indiaBias),
+        queryNominatim(q, '&countrycodes=in')
+      ])
+      let results = dedupe([...photonRes, ...nominatimRes])
 
-        // S2: full free-text with explicit address layer (best for streets)
-        queryNominatim(nominatimURL(q, '&countrycodes=in&layer=address,poi,manmade')),
-
-        // S3: structured search – street + city split (great for "road name city")
-        sc ? queryNominatim(nominatimStructuredURL(sc.street, sc.city, '&countrycodes=in')) : Promise.resolve([]),
-
-        // S4: global fallback (non-India addresses)
-        queryNominatim(nominatimURL(q)),
-      ]
-
-      const allArrays = await Promise.all(promises)
-      let results = dedupe(allArrays.flat())
-
-      // ── Fallback strategies (only if still empty/sparse) ──────────────────
+      // ── Fallback: if sparse, try dropping first word (POI prefix) ──────
       if (results.length < 2 && words.length > 2) {
-        // S5: drop first word (POI prefix) and search rest
-        const withoutFirst = words.slice(1).join(' ')
-        const s5 = await queryNominatim(
-          nominatimURL(withoutFirst, '&countrycodes=in&layer=address,poi')
-        )
-        results = dedupe([...results, ...s5])
+        const broad = words.slice(1).join(' ')
+        const [p2, n2] = await Promise.all([
+          queryPhoton(broad, indiaBias),
+          queryNominatim(broad, '&countrycodes=in')
+        ])
+        results = dedupe([...results, ...p2, ...n2])
       }
 
+      // ── Fallback: try last word alone (city/area name) ─────────────────
       if (results.length < 2 && words.length >= 2) {
-        // S6: try each pair of consecutive words as a street query
-        const pairQueries = []
-        for (let i = 0; i < words.length - 1; i++) {
-          pairQueries.push(
-            queryNominatim(nominatimURL(`${words[i]} ${words[i + 1]}`, '&countrycodes=in&layer=address'))
-          )
-        }
-        const pairResults = (await Promise.all(pairQueries)).flat()
-        results = dedupe([...results, ...pairResults])
+        const lastWord = words[words.length - 1]
+        const p3 = await queryPhoton(lastWord, indiaBias)
+        results = dedupe([...results, ...p3])
       }
 
-      if (results.length === 0) {
-        // S7: last resort – settlement/city only search
-        const s7 = await queryNominatim(
-          nominatimURL(q, '&countrycodes=in&featuretype=settlement')
-        )
-        results = dedupe([...results, ...s7])
+      // ── Fallback: global search (non-India) ────────────────────────────
+      if (results.length < 2) {
+        const p4 = await queryPhoton(q)
+        results = dedupe([...results, ...p4])
       }
-
-      // ── Rank: streets/roads first, then POI, then areas ───────────────────
-      results.sort((a, b) => {
-        const roadCls = ['highway', 'road']
-        const aIsRoad = roadCls.includes(a.cls)
-        const bIsRoad = roadCls.includes(b.cls)
-        if (aIsRoad && !bIsRoad) return -1
-        if (!aIsRoad && bIsRoad) return 1
-        return 0
-      })
 
       const final = results.slice(0, 8)
-
-      // Cache only non-empty results
       if (final.length > 0) suggestionCache[q] = final
 
       setSuggestions(final)
@@ -256,23 +196,28 @@ function Map() {
   // ── Manual search (Enter / Analyze button) ────────────────────────────────
   const searchPlace = async () => {
     if (!searchInput.trim()) return
-    setSuggestions([])
-    setShowDropdown(false)
+    
+    // If we already have suggestions, just pick the top one!
+    if (suggestions.length > 0) {
+      handleSelectSuggestion(suggestions[0])
+      return
+    }
+
     setLoading(true)
+    setNoResults(false)
     try {
-      const res  = await fetch(
-        `${API_BASE_URL}/api/search-location?q=${encodeURIComponent(searchInput.trim())}`
-      )
-      const data = await res.json()
-      if (!data.success) {
+      const q = searchInput.trim()
+      // Try a quick Photon search as fallback
+      const p = await queryPhoton(q, { lat: 20.59, lon: 78.96 })
+      if (p.length > 0) {
+        handleSelectSuggestion(p[0])
+      } else {
         setNoResults(true)
-        setLoading(false)
-        return
       }
-      await recalculateRisk(data.lat, data.lon)
     } catch (err) {
       console.error('Search error:', err)
       setNoResults(true)
+    } finally {
       setLoading(false)
     }
   }
@@ -337,6 +282,7 @@ function Map() {
     }
 
     const markerColor = data.markerColor || 'blue'
+    const riskHex = markerColor === 'red' ? '#e53935' : markerColor === 'yellow' ? '#fdd835' : '#43a047'
     const customIcon  = window.L.icon({
       iconUrl:   `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${markerColor}.png`,
       shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -346,19 +292,30 @@ function Map() {
       shadowSize:[41, 41]
     })
 
+    // Animated pulsing circle around marker
+    if (window._pulseCircle) { mapRef.current.removeLayer(window._pulseCircle) }
+    window._pulseCircle = window.L.circleMarker([data.lat, data.lon], {
+      radius: 28, color: riskHex, fillColor: riskHex, fillOpacity: 0.18,
+      weight: 2, opacity: 0.6, className: 'pulse-ring'
+    }).addTo(mapRef.current)
+
     markerRef.current = window.L.marker([data.lat, data.lon], { icon: customIcon })
       .addTo(mapRef.current)
 
     markerRef.current.bindPopup(`
-      <div style="font-family:Arial,sans-serif;min-width:160px;">
-        <strong style="display:block;margin-bottom:4px;">${data.location_name || 'Location'}</strong>
-        Risk: ${data.risk_status || 'Safe'}<br/>
-        Level: <b style="color:${markerColor === 'yellow' ? '#d9a400' : markerColor};">${data.risk_level || 'Low'}</b>
+      <div style="font-family:'Segoe UI',Arial,sans-serif;min-width:180px;overflow:hidden;border-radius:10px;">
+        <div style="background:${riskHex};padding:6px 12px;">
+          <strong style="color:#fff;font-size:13px;">${data.location_name || 'Location'}</strong>
+        </div>
+        <div style="padding:8px 12px;font-size:12px;">
+          Risk Status: <b>${data.risk_status || 'Safe'}</b><br/>
+          Risk Level: <b style="color:${markerColor === 'yellow' ? '#d9a400' : markerColor};">${data.risk_level || 'Low'}</b>
+        </div>
       </div>
-    `).openPopup()
+    `, { className: 'risk-popup', closeButton: true, maxWidth: 240 }).openPopup()
 
-    // Smooth fly-to animation
-    mapRef.current.flyTo([data.lat, data.lon], 14, { animate: true, duration: 1.2 })
+    // Smooth fly-to with easeOutCubic
+    mapRef.current.flyTo([data.lat, data.lon], 15, { animate: true, duration: 1.4, easeLinearity: 0.25 })
   }
 
   // ── Initialize Leaflet map ────────────────────────────────────────────────
@@ -371,11 +328,13 @@ function Map() {
       const mapInstance = window.L.map('full-interactive-map', { zoomControl: false })
         .setView([coords.lat, coords.lon], 5)
 
+      // Use Google Maps Hybrid Tiles (Satellite + Roads/Labels)
       window.L.tileLayer(
-        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
         {
-          attribution: 'Tiles &copy; Esri',
-          maxZoom: 19
+          attribution: 'Map data &copy; Google',
+          maxZoom: 20,
+          subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
         }
       ).addTo(mapInstance)
 

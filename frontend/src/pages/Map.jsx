@@ -119,22 +119,23 @@ function rankResults(query, results) {
     }
 
     // 2. India Bias (based on user region requirement)
-    if (res.country && (res.country.toLowerCase() === 'in' || res.country.toLowerCase() === 'india')) {
+    const isIndia = res.country && (res.country.toLowerCase() === 'in' || res.country.toLowerCase() === 'india')
+    if (isIndia) {
       score += 15
     } else {
-      // Heavy penalty for wrong country if we haven't matched perfectly
-      score -= 20
+      // HEAVY penalty for wrong country (stops France's "Velloreille" from showing)
+      score -= 100
     }
 
-    // 3. Location Type Bias (prefer specific streets/places over broad regions unless broad was searched)
+    // 3. Location Type Bias (prefer specific streets/places over broad regions)
     if (res.icon === 'school' || res.icon === 'route') score += 5
 
     res._score = score
     res._matchRatio = qTokens.length ? (matchedTokens / qTokens.length) : 0
     return res
   })
-  // Must match at least 50% of the query terms conceptually, or be very high score
-  .filter(res => res._matchRatio >= 0.4 || res._score > 0)
+  // Strict filter: must have positive score AND at least match half the intent
+  .filter(res => res._score > 0 && res._matchRatio >= 0.4)
   .sort((a, b) => b._score - a._score)
 }
 
@@ -191,8 +192,7 @@ function Map() {
     setSugLoading(true)
     setNoResults(false)
     try {
-      // 1. Full Intent Understanding - do NOT truncate
-      // Bias results heavily toward user region (India)
+      // 1. Full Intent Understanding - do NOT truncate for primary
       const indiaBias = { lat: 20.59, lon: 78.96 }
 
       const [photonRes, nominatimRes] = await Promise.all([
@@ -201,9 +201,19 @@ function Map() {
       ])
       
       let combined = dedupe([...photonRes, ...nominatimRes])
-      
-      // 2. Context-Aware Validation & Relevance Ranking
       let ranked = rankResults(q, combined)
+
+      // 2. Smart Regional Fallback (If exact match fails)
+      // "If exact match is not found: Show closest relevant results in the same region"
+      if (ranked.length === 0) {
+        const words = q.split(/\s+/).filter(Boolean)
+        if (words.length >= 2) {
+          // Assume the last word or two is the region (e.g. "Vellore" in "Saidpet Vellore")
+          const regionQuery = words[words.length - 1]
+          const regionRes = await queryNominatim(regionQuery, '&countrycodes=in')
+          ranked = rankResults(regionQuery, regionRes)
+        }
+      }
 
       const final = ranked.slice(0, 8)
       if (final.length > 0) suggestionCache[q] = final

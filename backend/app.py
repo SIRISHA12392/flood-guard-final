@@ -328,6 +328,64 @@ def reverse_geocode():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+# ── In-memory cache for autocomplete suggestions ──────────────────────────────
+_suggestion_cache = {}
+
+@app.route('/api/suggestions', methods=['GET'])
+def get_suggestions():
+    """
+    Return up to 6 place suggestions from Nominatim for a given query string.
+    Cached in memory per query to avoid hammering Nominatim.
+    Query param: q=<search text>
+    """
+    q = (request.args.get('q') or '').strip()
+    if not q or len(q) < 2:
+        return jsonify([]), 200
+
+    if q in _suggestion_cache:
+        return jsonify(_suggestion_cache[q]), 200
+
+    try:
+        headers = {
+            'User-Agent': 'FloodGuardPro/1.0',
+            'Accept-Language': 'en',
+            'Accept': 'application/json'
+        }
+        url = (
+            f'https://nominatim.openstreetmap.org/search'
+            f'?q={q}&format=json&limit=6&addressdetails=1'
+        )
+        resp = requests.get(url, headers=headers, timeout=8)
+        resp.raise_for_status()
+        data = resp.json()
+
+        results = []
+        for item in data:
+            a = item.get('address', {})
+            parts = [
+                a.get('road') or a.get('pedestrian') or a.get('footway'),
+                a.get('suburb') or a.get('neighbourhood'),
+                a.get('city') or a.get('town') or a.get('village') or a.get('county'),
+                a.get('state'),
+                a.get('country'),
+            ]
+            short = ', '.join(p for p in parts if p)
+            results.append({
+                'lat':         float(item['lat']),
+                'lon':         float(item['lon']),
+                'displayName': item.get('display_name', q),
+                'shortName':   short or item.get('display_name', q),
+            })
+
+        _suggestion_cache[q] = results
+        return jsonify(results), 200
+
+    except Exception as e:
+        print(f'[suggestions] error: {e}')
+        return jsonify([]), 200
+
+
 @app.route('/api/search-location', methods=['GET', 'POST'])
 def search_location():
     """Search for location coordinates from place name"""

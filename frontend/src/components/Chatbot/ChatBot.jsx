@@ -16,9 +16,18 @@ const ChatBot = () => {
   const [messages, setMessages]         = useState([])
   const [isLoading, setIsLoading]       = useState(false)
   const [language, setLanguage]         = useState('english')
-  const [voiceEnabled, setVoiceEnabled] = useState(true)
   const [isOpen, setIsOpen]             = useState(false)
+  const [isPlaying, setIsPlaying]       = useState(false)
   const messagesEndRef                  = useRef(null)
+  const currentAudioRef                 = useRef(null)
+
+  const handleStopAudio = () => {
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause()
+      currentAudioRef.current.currentTime = 0
+      setIsPlaying(false)
+    }
+  }
 
   const isAuthPage = AUTH_ROUTES.includes(pathname)
 
@@ -50,8 +59,11 @@ const ChatBot = () => {
   if (isAuthPage) return null
 
   // ── Send message ─────────────────────────────────────────────────────────
-  const handleSendMessage = async (userText) => {
+  const handleSendMessage = async (userText, isVoiceInput = false) => {
     if (!userText.trim()) return
+
+    // Stop any currently playing audio before starting a new request
+    handleStopAudio()
 
     const userMsg = {
       id:        Date.now(),
@@ -64,7 +76,7 @@ const ChatBot = () => {
     setIsLoading(true)
 
     try {
-      const result = await sendMessage(userText, voiceEnabled)
+      const result = await sendMessage(userText, isVoiceInput)
 
       if (result.success) {
         const botMsg = {
@@ -77,8 +89,13 @@ const ChatBot = () => {
         }
         setMessages((prev) => [...prev, botMsg])
 
-        if (voiceEnabled && result.audio?.audio_base64) {
-          playAudioFromBase64(result.audio.audio_base64, result.audio.format)
+        if (isVoiceInput && result.audio?.audio_base64) {
+          const audio = playAudioFromBase64(result.audio.audio_base64, result.audio.format)
+          if (audio) {
+            currentAudioRef.current = audio
+            setIsPlaying(true)
+            audio.onended = () => setIsPlaying(false)
+          }
         }
       } else {
         addErrorMessage()
@@ -166,6 +183,11 @@ const ChatBot = () => {
               </div>
             </div>
             <div className="chatbot-header-right">
+              {isPlaying && (
+                <button onClick={handleStopAudio} className="header-btn stop-audio-btn" title="Stop Audio">
+                  🔇
+                </button>
+              )}
               <button onClick={handleClearChat} className="header-btn" title="Clear">🗑️</button>
               <button onClick={() => setIsOpen(false)} className="header-btn close-btn">✕</button>
             </div>
@@ -186,7 +208,7 @@ const ChatBot = () => {
               <ChatMessage
                 key={msg.id}
                 message={msg}
-                voiceEnabled={voiceEnabled}
+                voiceEnabled={false}
                 language={language}
               />
             ))}
@@ -203,17 +225,7 @@ const ChatBot = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Voice toggle */}
-          <div className="voice-toggle-bar">
-            <label className="voice-label">
-              <input
-                type="checkbox"
-                checked={voiceEnabled}
-                onChange={(e) => setVoiceEnabled(e.target.checked)}
-              />
-              🔊 {language === 'english' ? 'Voice Response' : 'குரல் பதில்'}
-            </label>
-          </div>
+
 
           {/* Input */}
           <ChatInput

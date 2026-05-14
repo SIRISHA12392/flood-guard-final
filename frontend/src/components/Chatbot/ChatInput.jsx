@@ -5,21 +5,47 @@ const ChatInput = ({ onSendMessage, language, isLoading }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [recognition, setRecognition] = useState(null);
 
+  const onSendMessageRef = React.useRef(onSendMessage);
+  
+  // Keep the ref updated with the latest onSendMessage function
   useEffect(() => {
-    // Setup Speech Recognition
+    onSendMessageRef.current = onSendMessage;
+  }, [onSendMessage]);
+
+  useEffect(() => {
+    // Setup Speech Recognition only once on mount
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       const recog = new SpeechRecognition();
       recog.continuous = false;
-      recog.interimResults = false;
+      recog.interimResults = true;
       
       recog.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        setInputText(transcript);
-        // Automatically send after voice input
-        onSendMessage(transcript);
-        setInputText('');
-        setIsRecording(false);
+        let interimTranscript = '';
+        let finalTranscript = '';
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
+        }
+
+        if (interimTranscript !== '') {
+          setInputText(interimTranscript);
+        }
+
+        if (finalTranscript !== '') {
+          setInputText(finalTranscript);
+          // Automatically send after voice input finishes
+          if (onSendMessageRef.current) {
+            onSendMessageRef.current(finalTranscript, true); // true indicates voice input
+          }
+          setInputText('');
+          setIsRecording(false);
+          recog.stop();
+        }
       };
 
       recog.onerror = (event) => {
@@ -33,12 +59,12 @@ const ChatInput = ({ onSendMessage, language, isLoading }) => {
 
       setRecognition(recog);
     }
-  }, [onSendMessage]);
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (inputText.trim() && !isLoading) {
-      onSendMessage(inputText);
+      onSendMessage(inputText, false); // false indicates text input
       setInputText('');
     }
   };

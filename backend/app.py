@@ -169,7 +169,26 @@ def predict_landslide(rainfall_mm, location_name, humidity):
         return "Nil"
 
 def get_reverse_geocode(lat, lon):
-    """Get place name from coordinates using Nominatim with better parsing"""
+    """Get place name from coordinates using OpenWeatherMap, fallback to Nominatim"""
+    try:
+        url = f"http://api.openweathermap.org/geo/1.0/reverse?lat={lat}&lon={lon}&limit=1&appid={API_KEY}"
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+        data = response.json()
+        if data and len(data) > 0:
+            best = data[0]
+            parts = []
+            if "name" in best:
+                parts.append(best["name"])
+            if "state" in best and best["state"] != best.get("name"):
+                parts.append(best["state"])
+            if "country" in best:
+                parts.append(best["country"])
+            if parts:
+                return ", ".join(parts)
+    except Exception as e:
+        print(f"OWM reverse geocode error: {e}")
+        
     try:
         url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}"
         headers = {'User-Agent': 'FloodLandslidePredictor/1.0', 'Accept-Language': 'en'}
@@ -185,8 +204,8 @@ def get_reverse_geocode(lat, lon):
         country = address.get("country")
         
         if suburb: parts.append(suburb)
-        if city: parts.append(city)
-        if state: parts.append(state)
+        if city and city != suburb: parts.append(city)
+        if state and state != city: parts.append(state)
         if country: parts.append(country)
         
         if parts:

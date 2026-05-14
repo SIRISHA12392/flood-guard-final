@@ -161,7 +161,7 @@ function Home({ user, onLogout }) {
 
     const radius = 10000  // 10 km in metres
     const query = `
-      [out:json][timeout:8];
+      [out:json][timeout:15];
       (
         node["amenity"="hospital"](around:${radius},${lat},${lon});
         way["amenity"="hospital"](around:${radius},${lat},${lon});
@@ -171,15 +171,37 @@ function Home({ user, onLogout }) {
       out center 20;
     `
 
-    try {
-      const res = await fetch('https://overpass-api.de/api/interpreter', {
-        method: 'POST',
-        body: query,
-        signal: AbortSignal.timeout(10000),   // 10s hard timeout
-      })
-      if (!res.ok) throw new Error('Overpass API error')
+    const endpoints = [
+      'https://overpass-api.de/api/interpreter',
+      'https://lz4.overpass-api.de/api/interpreter',
+      'https://overpass.kumi.systems/api/interpreter'
+    ];
 
-      const data = await res.json()
+    let data = null;
+    let success = false;
+
+    for (const url of endpoints) {
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          body: query,
+          signal: AbortSignal.timeout(15000)
+        });
+        if (res.ok) {
+          data = await res.json();
+          success = true;
+          break;
+        }
+      } catch (err) {
+        console.warn(`Overpass fetch failed for ${url}:`, err.message);
+      }
+    }
+
+    try {
+      if (!success) {
+        throw new Error('All Overpass API endpoints failed');
+      }
+
       const elements = data.elements || []
 
       const places = elements
@@ -341,10 +363,9 @@ function Home({ user, onLogout }) {
   // Reverse geocode
   const reverseGeocode = async (lat, lon) => {
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
+      const res = await fetch(`${API_BASE_URL}/api/reverse-geocode?lat=${lat}&lon=${lon}`)
       const data = await res.json()
-      return data.address?.city || data.address?.town || data.address?.village ||
-        data.address?.county || data.address?.district || data.address?.state || 'Selected Location'
+      return data.place || 'Selected Location'
     } catch {
       return 'Selected Location'
     }
